@@ -7,7 +7,8 @@
 
   function setMsg(t){ msgEl.textContent = t || ''; }
 
-  const socket = io({ transports: ['websocket','polling'] });
+  // Connexion SocketIO sur le même host que la page
+  const socket = io(window.location.origin, { transports: ['websocket','polling'] });
 
   socket.on('connect', () => {
     socket.emit('join_lobby', { lobby_id: lobbyId, role: 'player' });
