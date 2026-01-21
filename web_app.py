@@ -266,6 +266,22 @@ def create_app() -> Flask:
     def menu():
         return render_template("menu.html")
 
+    @app.get("/api/lobbies")
+    def list_lobbies():
+        """Liste tous les salons disponibles (en attente de joueurs)"""
+        available = []
+        for lobby_id, lobby in rt_lobbies._lobbies.items():
+            if lobby.phase == "waiting" and len(lobby.players) < lobby.max_players:
+                available.append({
+                    "lobby_id": lobby_id,
+                    "host_name": lobby.host_name,
+                    "players": len(lobby.players),
+                    "max_players": lobby.max_players,
+                    "time_limit": lobby.time_limit,
+                    "question_total": lobby.question_total,
+                })
+        return jsonify({"ok": True, "lobbies": available})
+
     @app.post("/start")
     def start():
         name = (request.form.get("name") or "").strip()
@@ -303,16 +319,24 @@ def create_app() -> Flask:
         sid = _ensure_sid()
         lobby_id = (data.get("lobby_id") or "").strip()
         if not lobby_id:
+            if request.is_json:
+                return jsonify({"ok": False, "error": "missing lobby_id"}), 400
             return redirect(url_for("menu", error="missing lobby_id"))
         name = (data.get("name") or "Joueur").strip()[:24]
 
         lobby = rt_lobbies.get(lobby_id)
         if not lobby:
+            if request.is_json:
+                return jsonify({"ok": False, "error": "unknown-lobby"}), 404
             return redirect(url_for("menu", error="unknown-lobby"))
         try:
             lobby.add_player(sid, name)
         except ValueError as e:
+            if request.is_json:
+                return jsonify({"ok": False, "error": str(e)}), 400
             return redirect(url_for("menu", error=str(e)))
+        if request.is_json:
+            return jsonify({"ok": True, "lobby_id": lobby_id})
         return redirect(url_for("lobby_client", lobby_id=lobby_id))
 
     @app.get("/lobby/<lobby_id>/host")
