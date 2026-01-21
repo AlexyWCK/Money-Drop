@@ -614,4 +614,4 @@ if __name__ == "__main__":
     host = os.environ.get("MONEYDROP_HOST", "127.0.0.1")
     port = int(os.environ.get("MONEYDROP_PORT", "8000"))
     # Socket.IO must run the server (use the instance that registered handlers)
-    app.socketio.run(app, host=host, port=port, debug=True)  # type: ignore[attr-defined]
+    app.socketio.run(app, host=host, port=port, debug=True, use_reloader=False)  # type: ignore[attr-defined]
