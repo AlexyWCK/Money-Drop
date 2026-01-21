@@ -3,44 +3,89 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Money Drop - Lobby</title>
+  <title>Money Drop - Partie Multijoueur</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='lobby.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='cinematic.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='resolution.css') }}" />
 </head>
 <body class="md-bg">
+  <!-- Overlay cinématique -->
+  <div id="cineOverlay" class="cine-overlay" aria-hidden="true"></div>
+
+  <div class="md-ambient" aria-hidden="true">
+    <div class="md-blob md-blob-a"></div>
+    <div class="md-blob md-blob-b"></div>
+  </div>
+
   <div class="md-shell">
     <header class="md-header">
       <div class="md-brand">
         <img src="{{ url_for('static', filename='Money_drop_logo.png') }}" alt="Money Drop" class="md-logo" />
       </div>
+
       <div class="md-header-right">
         <div class="md-pill">
           <span class="md-pill-label">Lobby:</span>
-          <span class="md-pill-value" id="lobbyId">{{ lobby_id }}</span>
+          <span class="md-pill-value">{{ lobby_id }}</span>
         </div>
-        <a class="md-btn md-btn-ghost" href="/menu">Menu</a>
+        <div class="md-pill">
+          <span class="md-pill-label">Joueurs:</span>
+          <span id="playerCount" class="md-pill-value md-gold">0</span>
+        </div>
+        <a href="/menu" class="md-btn md-btn-ghost">Menu</a>
       </div>
     </header>
 
-    <main class="lobby-shell lobby-shell-client">
-      <section class="lobby-panel">
-        <div class="lobby-title">Question</div>
-        <div class="lobby-state">
-          <div><b>Phase:</b> <span id="phase">...</span></div>
-          <div><b>Temps:</b> <span id="timeRemaining">-</span>s</div>
+    <main class="md-layout">
+      <section class="md-main">
+        <div class="md-question">
+          <div class="md-qbadge">
+            <div class="md-qbadge-top">Question</div>
+            <div class="md-qbadge-num" id="qCounter">-</div>
+          </div>
+
+          <div class="md-qtext">
+            <div id="category" class="md-qcategory">Catégorie</div>
+            <div id="prompt" class="md-qprompt">En attente du serveur...</div>
+          </div>
+
+          <div class="md-timer" aria-label="Chrono">
+            <svg class="md-timer-svg" viewBox="0 0 100 100" role="img">
+              <circle class="md-timer-bg" cx="50" cy="50" r="45" />
+              <circle id="timerProgress" class="md-timer-fg" cx="50" cy="50" r="45" />
+            </svg>
+            <div class="md-timer-text" id="timerText">--</div>
+          </div>
         </div>
-        <div class="lobby-qbox">
-          <div class="lobby-qcat" id="category">...</div>
-          <div class="lobby-qprompt" id="prompt">En attente du serveur...</div>
+
+        <div class="md-board">
+          <div class="md-answers">
+            <div class="md-answer" id="ansA" data-key="A">
+              <div class="md-answer-letter">A</div>
+              <div class="md-answer-text" id="textA">...</div>
+            </div>
+            <div class="md-answer" id="ansB" data-key="B">
+              <div class="md-answer-letter">B</div>
+              <div class="md-answer-text" id="textB">...</div>
+            </div>
+            <div class="md-answer" id="ansC" data-key="C">
+              <div class="md-answer-letter">C</div>
+              <div class="md-answer-text" id="textC">...</div>
+            </div>
+            <div class="md-answer" id="ansD" data-key="D">
+              <div class="md-answer-letter">D</div>
+              <div class="md-answer-text" id="textD">...</div>
+            </div>
+          </div>
         </div>
-        <div class="lobby-answers" id="answers"></div>
-        <div id="clientMsg" class="lobby-hint"></div>
+
+        <div id="clientMsg" class="md-hint"></div>
       </section>
 
-      <section class="lobby-panel">
-        <div class="lobby-title">Classement</div>
-        <div id="players" class="lobby-players"></div>
-      </section>
+      <aside class="md-sidebar">
+        <div class="md-sidebar-title">Joueurs</div>
+        <div id="players" class="md-players"></div>
+      </aside>
     </main>
   </div>
 
@@ -50,5 +95,7 @@
     window.ROLE = "player";
   </script>
   <script src="{{ url_for('static', filename='lobby_client.js') }}"></script>
+  <script src="{{ url_for('static', filename='cinematic.js') }}"></script>
+  <script src="{{ url_for('static', filename='resolution.js') }}"></script>
 </body>
 </html>

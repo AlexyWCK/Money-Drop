@@ -85,19 +85,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     try {
-      const res = await fetch('/lobby/join', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ lobby_id: lobbyId, name })
-      });
-      const data = await res.json();
-
-      if (data.ok) {
-        sessionStorage.setItem('lobby_id', lobbyId);
-        window.location.href = '/play';
-      } else {
-        alert('Erreur: ' + (data.error || 'Impossible de rejoindre'));
-      }
+      // Faire une vraie redirection POST (comme un formulaire)
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/lobby/join';
+      
+      const lobbyInput = document.createElement('input');
+      lobbyInput.type = 'hidden';
+      lobbyInput.name = 'lobby_id';
+      lobbyInput.value = lobbyId;
+      form.appendChild(lobbyInput);
+      
+      const nameInput = document.createElement('input');
+      nameInput.type = 'hidden';
+      nameInput.name = 'name';
+      nameInput.value = name;
+      form.appendChild(nameInput);
+      
+      document.body.appendChild(form);
+      form.submit();
     } catch (e) {
       console.error('Erreur:', e);
       alert('Erreur de connexion: ' + e.message);

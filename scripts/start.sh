@@ -40,19 +40,23 @@ if [ -f /tmp/md_web.pid ]; then
   rm -f /tmp/md_web.pid
 fi
 
-echo "Starting socket server (server.py) on 127.0.0.1:5050..."
-nohup .venv/bin/python3 server.py --host 127.0.0.1 --port 5050 > /tmp/md_server.log 2>&1 &
+echo "Starting socket server (server.py) on 0.0.0.0:5050..."
+nohup .venv/bin/python3 server.py --host 0.0.0.0 --port 5050 > /tmp/md_server.log 2>&1 &
 echo $! > /tmp/md_server.pid
 
 WEB_PORT=${MONEYDROP_PORT:-8001}
 export MONEYDROP_PORT="$WEB_PORT"
-echo "Starting web app (web_app.py) on http://127.0.0.1:$WEB_PORT ..."
+export MONEYDROP_HOST="0.0.0.0"
+echo "Starting web app (web_app.py) on http://0.0.0.0:$WEB_PORT ..."
 nohup .venv/bin/python3 web_app.py > /tmp/md_web.log 2>&1 &
 echo $! > /tmp/md_web.pid
 
 echo "Started."
 echo "Socket server log: /tmp/md_server.log (pid $(cat /tmp/md_server.pid))"
 echo "Web log: /tmp/md_web.log (pid $(cat /tmp/md_web.pid))"
-echo "Open http://127.0.0.1:$WEB_PORT in your browser"
+# Afficher l'IP locale pour que les autres puissent se connecter
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+echo "🌐 Accédez au serveur via: http://$LOCAL_IP:$WEB_PORT"
+echo "💡 Partagez cette adresse IP avec vos amis pour qu'ils se connectent à distance!"
 
 exit 0
