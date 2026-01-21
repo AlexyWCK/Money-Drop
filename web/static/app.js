@@ -76,6 +76,18 @@ function updateVisuals(state){
         visual.appendChild(stack);
       }
     }
+
+    // Toggle minus button color
+    const minusBtn = document.querySelector(`.md-circle-btn-minus[data-key="${k}"]`);
+    if(minusBtn){
+      if(amount > 0){
+        minusBtn.classList.add('active');
+        minusBtn.classList.remove('inactive');
+      }else{
+        minusBtn.classList.remove('active');
+        minusBtn.classList.add('inactive');
+      }
+    }
   }
 
   // Remaining stacks visualization

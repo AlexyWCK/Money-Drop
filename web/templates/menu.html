@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Money Drop - Menu</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body class="md-bg md-home-bg">
+  <video class="md-bg-video" autoplay loop muted playsinline poster="{{ url_for('static', filename='video_poster.jpg') }}">
+    <source src="{{ url_for('static', filename='background.mp4') }}" type="video/mp4">
+  </video>
+  <div class="md-home-ambient"></div>
+  <div class="md-home-shell">
+    <header class="md-home-hero">
+      <img src="{{ url_for('static', filename='Money_drop_logo.png') }}" alt="Money Drop" class="md-home-logo" />
+      {# Titre supprimé, on garde juste le logo #}
+      <div class="md-home-subtitle">Place tes jetons, défie la banque !</div>
+    </header>
+    <main class="md-menu-main">
+      <div class="md-menu-card" id="menu-main">
+        <button class="md-menu-btn" id="btnSolo">Jouer en solo</button>
+        <button class="md-menu-btn" id="btnMulti">Multijoueur</button>
+      </div>
+      <div class="md-menu-card" id="menu-solo" style="display:none">
+        <form id="soloForm" class="form" method="post" action="/start">
+          <label>Nom du joueur</label>
+          <input name="name" required placeholder="Ex: Alice" autocomplete="nickname" />
+          <button class="md-menu-btn md-menu-sub" type="submit">Démarrer</button>
+        </form>
+        <button class="md-menu-btn md-menu-back" id="btnBackSolo">Retour</button>
+      </div>
+      <div class="md-menu-card" id="menu-multi" style="display:none">
+        <button class="md-menu-btn md-menu-sub" id="btnHost">Héberger un salon</button>
+        <button class="md-menu-btn md-menu-sub" id="btnJoin">Rejoindre un salon</button>
+        <button class="md-menu-btn md-menu-back" id="btnBackMulti">Retour</button>
+      </div>
+      <div class="md-menu-card" id="menu-host" style="display:none">
+        <form id="hostForm" class="form" method="post" action="/lobby/create">
+          <label>Nom du joueur</label>
+          <input name="name" required placeholder="Ex: Alice" />
+          <label>Nombre de joueurs</label>
+          <input name="size" type="number" min="2" max="8" value="2" />
+          <label>Temps / question (sec)</label>
+          <input name="time_limit" type="number" min="5" max="120" value="30" />
+          <button class="md-menu-btn md-menu-sub" type="submit">Créer et lancer</button>
+        </form>
+        <button class="md-menu-btn md-menu-back" id="btnBackHost">Retour</button>
+      </div>
+      <div class="md-menu-card" id="menu-join" style="display:none">
+        <form id="joinForm" class="form" method="post" action="/lobby/join">
+          <label>Nom du joueur</label>
+          <input name="name" required placeholder="Ex: Alice" />
+          <label>ID du salon</label>
+          <input name="lobby_id" required placeholder="ID salon" />
+          <button class="md-menu-btn md-menu-sub" type="submit">Rejoindre</button>
+        </form>
+        <button class="md-menu-btn md-menu-back" id="btnBackJoin">Retour</button>
+      </div>
+    </main>
+    <footer class="footer md-home-footer">
+      <span>Console serveur/client toujours dispo.</span>
+    </footer>
+  </div>
+  <script src="{{ url_for('static', filename='menu.js') }}"></script>
+</body>
+</html>

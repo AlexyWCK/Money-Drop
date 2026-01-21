@@ -38,9 +38,14 @@ def create_app() -> Flask:
             raise ValueError("unknown-session")
         return sid, game
 
+
     @app.get("/")
     def index():
         return render_template("index.html")
+
+    @app.get("/menu")
+    def menu():
+        return render_template("menu.html")
 
     @app.post("/start")
     def start():

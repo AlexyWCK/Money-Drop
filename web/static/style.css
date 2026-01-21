@@ -1,3 +1,187 @@
+/* Vidéo de fond fullscreen */
+.md-bg-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -2;
+  opacity: 0.38;
+  pointer-events: none;
+  filter: blur(1.5px) brightness(1.08) saturate(1.2);
+  transition: opacity 0.5s;
+}
+/* === Money Drop Accueil (présentatrice + style moderne) === */
+.md-home-bg {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #070718 60%, #0a0a1a 100%);
+  position: relative;
+  overflow: hidden;
+}
+.md-home-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: url('/static/presentatrice.jpeg') no-repeat right bottom;
+  background-size: auto 98vh;
+  opacity: 0.92;
+  pointer-events: none;
+}
+.md-home-shell {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.md-home-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+  margin-top: 32px;
+}
+.md-home-logo {
+  width: 120px;
+  background: linear-gradient(120deg, #181c2b 0%, #2b3a67 50%, #1e2746 100%);
+  overflow: hidden;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 18px #00d4ff88);
+}
+.md-home-title {
+  font-size: 2.6rem;
+  font-weight: 900;
+  pointer-events: none;
+  background: radial-gradient(circle at 20% 30%, rgba(0,180,255,0.12) 0, transparent 60%),
+              radial-gradient(circle at 80% 70%, rgba(255,255,255,0.10) 0, transparent 60%),
+              radial-gradient(circle at 60% 10%, rgba(255,200,0,0.10) 0, transparent 60%),
+              radial-gradient(circle at 50% 80%, rgba(255,0,120,0.10) 0, transparent 60%);
+  animation: md-bg-move 16s linear infinite alternate;
+  margin-bottom: 6px;
+}
+@keyframes md-bg-move {
+  0% { filter: blur(0px) brightness(1); }
+  100% { filter: blur(2px) brightness(1.08); }
+}
+.md-home-subtitle {
+  font-size: 1.2rem;
+  color: #ffd700;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px #000a;
+}
+.md-home-card {
+  background: rgba(13,27,60,0.92);
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.45);
+  padding: 38px 32px 32px 32px;
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto 32px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.md-home-card h1 {
+  font-size: 1.5rem;
+
+/* Effet "néon" et animation sur les boutons du menu principal */
+.md-menu-btn {
+  display: block;
+  width: 100%;
+  margin: 14px 0;
+  padding: 18px 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #1e2746 0%, #2b3a67 100%);
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 0 16px 2px #00eaff55, 0 2px 16px 0 #0006;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.md-menu-btn:before {
+  content: '';
+  position: absolute;
+  left: -60%;
+  top: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(120deg, rgba(0,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
+  transform: skewX(-24deg);
+  filter: blur(2px);
+  transition: left 0.4s cubic-bezier(.4,2,.6,.8);
+}
+.md-menu-btn:hover:before, .md-menu-btn:focus:before {
+  left: 100%;
+}
+.md-menu-btn:hover, .md-menu-btn:focus {
+  background: linear-gradient(90deg, #2b3a67 0%, #1e2746 100%);
+  transform: scale(1.045);
+  box-shadow: 0 0 32px 4px #00eaff99, 0 2px 24px 0 #0008;
+}
+
+/* Couleurs différentes pour les sous-boutons et retour */
+
+/* Boutons multi/retour : effet glass, glow, surbrillance */
+.md-menu-sub {
+  background: linear-gradient(90deg, #00b4ffcc 0%, #2b3a67cc 100%);
+  box-shadow: 0 0 18px 4px #00eaff77, 0 2px 16px 0 #0006;
+  border: 1.5px solid #00eaff55;
+  backdrop-filter: blur(2.5px) saturate(1.2);
+  text-shadow: 0 1px 8px #00eaff99, 0 0 2px #fff8;
+}
+.md-menu-sub:hover, .md-menu-sub:focus {
+  background: linear-gradient(90deg, #00eaff 0%, #2b3a67 100%);
+  box-shadow: 0 0 32px 8px #00eaffcc, 0 2px 24px 0 #0008;
+  border-color: #00eaffcc;
+}
+.md-menu-back {
+  background: linear-gradient(90deg, #ff006acc 0%, #1e2746cc 100%);
+  box-shadow: 0 0 18px 4px #ff006a77, 0 2px 16px 0 #0006;
+  border: 1.5px solid #ff006a55;
+  backdrop-filter: blur(2.5px) saturate(1.2);
+  text-shadow: 0 1px 8px #ff006a99, 0 0 2px #fff8;
+}
+.md-menu-back:hover, .md-menu-back:focus {
+  background: linear-gradient(90deg, #ff006a 0%, #1e2746 100%);
+  box-shadow: 0 0 32px 8px #ff006acc, 0 2px 24px 0 #0008;
+  border-color: #ff006acc;
+}
+  font-weight: 800;
+  margin-bottom: 18px;
+  color: #00d4ff;
+  letter-spacing: 1px;
+}
+.md-home-card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 18px 0 8px 0;
+  color: #ffd700;
+}
+.md-home-footer {
+  text-align: center;
+  color: #94a3b8;
+  margin-top: 18px;
+  font-size: 0.95rem;
+}
+@media (max-width: 900px) {
+  .md-home-ambient {
+    background-size: auto 60vh;
+    background-position: right bottom;
+  }
+  .md-home-card {
+    padding: 18px 6vw 18px 6vw;
+    max-width: 98vw;
+  }
+}
 :root{
   --bg:#0a0e27;
   --card:#101638;
@@ -508,7 +692,8 @@ input:focus{border-color:rgba(33, 150, 243, 0.6);box-shadow:0 0 0 3px rgba(33, 1
 .md-zone{position:relative;height:150px;border-radius:16px;background:rgba(10,22,40,.55);border:2px dashed rgba(37,99,235,.55);box-shadow:inset 0 0 0 1px rgba(0,212,255,.08), 0 16px 34px rgba(0,0,0,.28);overflow:hidden;}
 .md-zone-controls{position:absolute;top:12px;left:0;right:0;display:flex;justify-content:center;gap:10px;z-index:2;}
 .md-circle-btn{width:34px;height:34px;border-radius:999px;border:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:#fff;box-shadow:0 10px 18px rgba(0,0,0,.25);cursor:pointer;transition:transform .15s, filter .15s;}
-.md-circle-btn-minus{background:rgba(239,68,68,.78);}
+.md-circle-btn-minus{background:rgba(148,163,184,.35);transition:background .18s;}
+.md-circle-btn-minus.active{background:rgba(239,68,68,.78);}
 .md-circle-btn-plus{background:rgba(34,197,94,.75);}
 .md-circle-btn:hover{filter:brightness(1.07);transform:translateY(-1px);}
 .md-circle-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}

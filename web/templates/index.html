@@ -6,51 +6,27 @@
   <title>Money Drop - Web</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body class="bg">
-  <div class="wrap">
-    <header class="hero">
-      <div class="logo">MONEY DROP</div>
-      <div class="subtitle">Répartis tes jetons sur A/B/C/D</div>
+</head>
+<body class="md-bg md-home-bg">
+  <div class="md-home-ambient"></div>
+  <div class="md-home-shell">
+    <header class="md-home-hero">
+      <img src="{{ url_for('static', filename='Money_drop_logo.png') }}" alt="Money Drop" class="md-home-logo" />
+      <div class="md-home-title">Money Drop</div>
+      <div class="md-home-subtitle">Place tes jetons, défie la banque !</div>
     </header>
-
-    <main class="card">
-      <h1>Entrer dans la partie</h1>
-      {% if error %}
-        <div class="error">{{ error }}</div>
-      {% endif %}
-      <form id="soloForm" method="post" action="/start" class="form">
-        <label>Nom du joueur</label>
-        <input name="name" autocomplete="nickname" placeholder="Ex: Alice" required />
-        <div style="display:flex;gap:8px">
-          <button class="btn" type="submit">Démarrer (solo)</button>
-        </div>
-      </form>
-
-      <hr style="margin:14px 0;border:none;border-top:1px solid var(--line)" />
-      <div>
-        <h2>Salon multijoueur</h2>
-        <form id="createLobby" class="form">
-          <label>Nom</label>
-          <input id="lobbyName" name="name" placeholder="Ex: Alice" />
-          <label>Nombre de joueurs</label>
-          <input id="lobbySize" type="number" min="2" max="8" value="2" />
-          <label>Temps / question (sec)</label>
-          <input id="lobbyTime" type="number" min="5" max="120" value="30" />
-          <div style="display:flex;gap:8px">
-            <button id="btnCreate" class="btn" type="button">Créer salon</button>
-            <input id="joinId" placeholder="ID salon" />
-            <button id="btnJoin" class="btn ghost" type="button">Rejoindre</button>
-          </div>
-        </form>
-        <div id="lobbyMsg" class="hint"></div>
-      </div>
-
-      <div class="hint">
-        Multijoueur: ouvre plusieurs onglets ou navigateurs, chacun démarre une session.
+    <main class="md-home-main">
+      <div class="md-home-card">
+        <a href="/menu" class="md-menu-btn">Entrer dans le menu</a>
       </div>
     </main>
-
-    <footer class="footer">
+    <script>
+      // Auto-redirect to /menu after a short delay
+      setTimeout(function() {
+        window.location.href = '/menu';
+      }, 1200);
+    </script>
+    <footer class="footer md-home-footer">
       <span>Console serveur/client toujours dispo.</span>
     </footer>
   </div>
