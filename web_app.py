@@ -340,6 +340,8 @@ def create_app() -> Flask:
             return redirect(url_for("menu", error="unknown-lobby"))
         try:
             lobby.add_player(sid, name)
+            # Notifier tous les clients du lobby que l'état a changé
+            socketio.emit("state", lobby.snapshot(), room=lobby_id)
         except ValueError as e:
             if request.is_json:
                 return jsonify({"ok": False, "error": str(e)}), 400
@@ -386,6 +388,7 @@ def create_app() -> Flask:
         join_room(lobby_id)
         if role == "host" and not _is_host(lobby):
             emit("error_msg", {"error": "Host uniquement"})
+        # Envoyer l'état actuel du lobby au client
         emit("state", lobby.snapshot())
 
     @socketio.on("player_answer")
