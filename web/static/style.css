@@ -83,9 +83,12 @@
   position: fixed;
   inset: 0;
   z-index: 0;
-  background: url('/static/presentatrice.jpeg') no-repeat right bottom;
-  background-size: auto 98vh;
-  opacity: 0.92;
+  background:
+    radial-gradient(1200px 800px at 20% 30%, rgba(0,212,255,.12), transparent 60%),
+    radial-gradient(900px 650px at 80% 70%, rgba(255,215,0,.08), transparent 62%),
+    radial-gradient(800px 520px at 60% 15%, rgba(255,0,120,.08), transparent 60%),
+    rgba(8,12,22,.30);
+  opacity: 1;
   pointer-events: none;
 }
 .md-home-shell {
@@ -147,25 +150,54 @@
 }
 .md-home-card h1 {
   font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 18px;
+  color: #00d4ff;
+  letter-spacing: 1px;
+}
+
+/* Layout menu */
+.md-menu-layout{
+  width: 100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap: 14px;
+  padding: 0 16px;
+}
+
+.md-menu-card{
+  width: 100%;
+  max-width: 460px;
+  padding: 22px 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,212,255,.18);
+  background: rgba(13,27,60,.58);
+  box-shadow: 0 18px 60px rgba(0,0,0,.38);
+  backdrop-filter: blur(10px) saturate(1.15);
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
 
 /* Effet "néon" et animation sur les boutons du menu principal */
 .md-menu-btn {
   display: block;
   width: 100%;
-  margin: 14px 0;
-  padding: 18px 0;
-  font-size: 1.35rem;
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 1.06rem;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(90deg, #1e2746 0%, #2b3a67 100%);
-  border: none;
-  border-radius: 16px;
-  box-shadow: 0 0 16px 2px #00eaff55, 0 2px 16px 0 #0006;
+  background: rgba(0,212,255,.10);
+  border: 1px solid rgba(0,212,255,.22);
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.32);
   cursor: pointer;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   position: relative;
   overflow: hidden;
-  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  transition: transform 160ms ease, background 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 .md-menu-btn:before {
   content: '';
@@ -174,7 +206,7 @@
   top: 0;
   width: 60%;
   height: 100%;
-  background: linear-gradient(120deg, rgba(0,255,255,0.18) 0%, rgba(255,255,255,0.08) 100%);
+  background: linear-gradient(120deg, rgba(255,255,255,0.14) 0%, rgba(0,212,255,0.10) 100%);
   transform: skewX(-24deg);
   filter: blur(2px);
   transition: left 0.4s cubic-bezier(.4,2,.6,.8);
@@ -183,42 +215,41 @@
   left: 100%;
 }
 .md-menu-btn:hover, .md-menu-btn:focus {
-  background: linear-gradient(90deg, #2b3a67 0%, #1e2746 100%);
-  transform: scale(1.045);
-  box-shadow: 0 0 32px 4px #00eaff99, 0 2px 24px 0 #0008;
+  background: rgba(0,212,255,.16);
+  transform: translateY(-1px);
+  border-color: rgba(0,212,255,.35);
+  box-shadow: 0 14px 34px rgba(0,0,0,.36);
 }
 
 /* Couleurs différentes pour les sous-boutons et retour */
 
+/* Boutons principaux (solo / multi) */
+.md-menu-btn-main{
+  background: linear-gradient(90deg, rgba(0,212,255,.22), rgba(37,99,235,.18));
+  border-color: rgba(0,212,255,.28);
+  font-size: 1.12rem;
+  padding: 14px 16px;
+}
+.md-menu-btn-main:hover, .md-menu-btn-main:focus{
+  background: linear-gradient(90deg, rgba(0,212,255,.28), rgba(37,99,235,.22));
+}
+
 /* Boutons multi/retour : effet glass, glow, surbrillance */
 .md-menu-sub {
-  background: linear-gradient(90deg, #00b4ffcc 0%, #2b3a67cc 100%);
-  box-shadow: 0 0 18px 4px #00eaff77, 0 2px 16px 0 #0006;
-  border: 1.5px solid #00eaff55;
-  backdrop-filter: blur(2.5px) saturate(1.2);
-  text-shadow: 0 1px 8px #00eaff99, 0 0 2px #fff8;
+  background: rgba(37,99,235,.18);
+  border-color: rgba(37,99,235,.30);
 }
 .md-menu-sub:hover, .md-menu-sub:focus {
-  background: linear-gradient(90deg, #00eaff 0%, #2b3a67 100%);
-  box-shadow: 0 0 32px 8px #00eaffcc, 0 2px 24px 0 #0008;
-  border-color: #00eaffcc;
+  background: rgba(37,99,235,.24);
+  border-color: rgba(0,212,255,.30);
 }
 .md-menu-back {
-  background: linear-gradient(90deg, #ff006acc 0%, #1e2746cc 100%);
-  box-shadow: 0 0 18px 4px #ff006a77, 0 2px 16px 0 #0006;
-  border: 1.5px solid #ff006a55;
-  backdrop-filter: blur(2.5px) saturate(1.2);
-  text-shadow: 0 1px 8px #ff006a99, 0 0 2px #fff8;
+  background: rgba(239,68,68,.14);
+  border-color: rgba(239,68,68,.28);
 }
 .md-menu-back:hover, .md-menu-back:focus {
-  background: linear-gradient(90deg, #ff006a 0%, #1e2746 100%);
-  box-shadow: 0 0 32px 8px #ff006acc, 0 2px 24px 0 #0008;
-  border-color: #ff006acc;
-}
-  font-weight: 800;
-  margin-bottom: 18px;
-  color: #00d4ff;
-  letter-spacing: 1px;
+  background: rgba(239,68,68,.18);
+  border-color: rgba(239,68,68,.40);
 }
 .md-home-card h2 {
   font-size: 1.1rem;
@@ -392,6 +423,7 @@ input:focus{border-color:rgba(33, 150, 243, 0.6);box-shadow:0 0 0 3px rgba(33, 1
 }
 
 .bet-input[type=number] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 

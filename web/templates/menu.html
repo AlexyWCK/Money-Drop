@@ -17,10 +17,10 @@
       {# Titre supprimé, on garde juste le logo #}
       <div class="md-home-subtitle">Place tes jetons, défie la banque !</div>
     </header>
-    <main class="md-menu-main">
+    <main class="md-menu-layout">
       <div class="md-menu-card" id="menu-main">
-        <button type="button" class="md-menu-btn md-menu-main" id="btnSolo">Jouer en solo</button>
-        <button type="button" class="md-menu-btn md-menu-main" id="btnMulti">Multijoueur</button>
+        <button type="button" class="md-menu-btn md-menu-btn-main" id="btnSolo">Jouer en solo</button>
+        <button type="button" class="md-menu-btn md-menu-btn-main" id="btnMulti">Multijoueur</button>
       </div>
       <div class="md-menu-card" id="menu-solo" style="display:none">
         <form id="soloForm" class="form" method="post" action="/start">
@@ -31,9 +31,9 @@
         <button class="md-menu-btn md-menu-back" id="btnBackSolo">Retour</button>
       </div>
       <div class="md-menu-card" id="menu-multi" style="display:none">
-        <button class="md-menu-btn md-menu-sub" id="btnHost">Héberger un salon</button>
-        <button class="md-menu-btn md-menu-sub" id="btnJoin">Rejoindre un salon</button>
-        <button class="md-menu-btn md-menu-back" id="btnBackMulti">Retour</button>
+        <button type="button" class="md-menu-btn md-menu-sub" id="btnHost">Héberger un salon</button>
+        <button type="button" class="md-menu-btn md-menu-sub" id="btnJoin">Rejoindre un salon</button>
+        <button type="button" class="md-menu-btn md-menu-back" id="btnBackMulti">Retour</button>
       </div>
       <div class="md-menu-card" id="menu-host" style="display:none">
         <form id="hostForm" class="form" method="post" action="/lobby/create">
