@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Money Drop - Lobby</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='lobby.css') }}" />
+</head>
+<body class="md-bg">
+  <div class="md-shell">
+    <header class="md-header">
+      <div class="md-brand">
+        <img src="{{ url_for('static', filename='Money_drop_logo.png') }}" alt="Money Drop" class="md-logo" />
+      </div>
+      <div class="md-header-right">
+        <div class="md-pill">
+          <span class="md-pill-label">Lobby:</span>
+          <span class="md-pill-value" id="lobbyId">{{ lobby_id }}</span>
+        </div>
+        <a class="md-btn md-btn-ghost" href="/menu">Menu</a>
+      </div>
+    </header>
+
+    <main class="lobby-shell lobby-shell-client">
+      <section class="lobby-panel">
+        <div class="lobby-title">Question</div>
+        <div class="lobby-state">
+          <div><b>Phase:</b> <span id="phase">...</span></div>
+          <div><b>Temps:</b> <span id="timeRemaining">-</span>s</div>
+        </div>
+        <div class="lobby-qbox">
+          <div class="lobby-qcat" id="category">...</div>
+          <div class="lobby-qprompt" id="prompt">En attente du serveur...</div>
+        </div>
+        <div class="lobby-answers" id="answers"></div>
+        <div id="clientMsg" class="lobby-hint"></div>
+      </section>
+
+      <section class="lobby-panel">
+        <div class="lobby-title">Classement</div>
+        <div id="players" class="lobby-players"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    window.LOBBY_ID = "{{ lobby_id }}";
+    window.ROLE = "player";
+  </script>
+  <script src="{{ url_for('static', filename='lobby_client.js') }}"></script>
+</body>
+</html>
