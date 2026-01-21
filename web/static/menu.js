@@ -1,6 +1,16 @@
 // Menu navigation logic for Money Drop main menu
 
 document.addEventListener('DOMContentLoaded', function () {
+
+  // Efface l’erreur mot de passe au focus
+  const hostPwdInput = document.querySelector('#menu-host input[name="password"]');
+  if (hostPwdInput) {
+    hostPwdInput.addEventListener('focus', function () {
+      const errDiv = document.getElementById('hostPwdError');
+      if (errDiv) errDiv.style.display = 'none';
+    });
+  }
+
   const menuMain = document.getElementById('menu-main');
   const menuMulti = document.getElementById('menu-multi');
   const menuHost = document.getElementById('menu-host');
@@ -94,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (data.ok) {
         sessionStorage.setItem('lobby_id', lobbyId);
-        window.location.href = '/play';
+        window.location.href = `/lobby/${lobbyId}/client`;
       } else {
         alert('Erreur: ' + (data.error || 'Impossible de rejoindre'));
       }

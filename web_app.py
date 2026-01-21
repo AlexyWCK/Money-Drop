@@ -37,6 +37,8 @@ def create_app() -> Flask:
     lobbies = LobbyManager()
     config = GameConfig(starting_chips=1000, question_count=7, allow_unbet_chips=True)
 
+    create_lobby_password = os.environ.get("MONEYDROP_CREATE_PASSWORD", "Droit_Terrasse2026")
+
     # --- Realtime multiplayer (server-authoritative) ---
     def _ensure_sid() -> str:
         sid = session.get("sid")
@@ -307,8 +309,15 @@ def create_app() -> Flask:
         data = request.form or request.get_json() or {}
         sid = _ensure_sid()
         name = (data.get("name") or "Host").strip()[:24]
+        password = (data.get("password") or "").strip()
         size = int(data.get("size", 2))
         time_limit = int(data.get("time_limit", 30))
+
+        if password != create_lobby_password:
+            if request.is_json:
+                return jsonify({"ok": False, "error": "invalid password"}), 403
+            # On renvoie une erreur pour affichage sous le champ
+            return render_template("menu.html", host_error="MTP incorrect", host_name=name, host_size=size, host_time_limit=time_limit)
 
         lobby = rt_lobbies.create(host_sid=sid, host_name=name, max_players=size, time_limit=time_limit)
         return redirect(url_for("lobby_host", lobby_id=lobby.lobby_id))

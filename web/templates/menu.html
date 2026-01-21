@@ -38,11 +38,18 @@
       <div class="md-menu-card" id="menu-host" style="display:none">
         <form id="hostForm" class="form" method="post" action="/lobby/create">
           <label>Nom du joueur</label>
-          <input name="name" required placeholder="Ex: Alice" />
+          <input name="name" required placeholder="Ex: Alice" value="{{ host_name|default('') }}" />
+          <label>Mot de passe</label>
+          <input name="password" type="password" required placeholder="Mot de passe du salon" />
+          {% if host_error %}
+          <div id="hostPwdError" style="color:#e53935; font-size:13px; margin-top:4px; margin-bottom:8px;">{{ host_error }}</div>
+          {% else %}
+          <div id="hostPwdError" style="display:none; color:#e53935; font-size:13px; margin-top:4px; margin-bottom:8px;"></div>
+          {% endif %}
           <label>Nombre de joueurs</label>
-          <input name="size" type="number" min="2" max="8" value="2" />
+          <input name="size" type="number" min="2" max="8" value="{{ host_size|default('2') }}" />
           <label>Temps / question (sec)</label>
-          <input name="time_limit" type="number" min="5" max="120" value="30" />
+          <input name="time_limit" type="number" min="5" max="120" value="{{ host_time_limit|default('30') }}" />
           <button class="md-menu-btn md-menu-sub" type="submit">Créer et lancer</button>
         </form>
         <button class="md-menu-btn md-menu-back" id="btnBackHost">Retour</button>
