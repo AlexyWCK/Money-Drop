@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Money Drop - Partie</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body class="bg">
+  <div class="wrap">
+    <header class="topbar">
+      <div class="logo small">MONEY DROP</div>
+      <div class="meta">
+        <div id="playerName" class="pill">Joueur: ...</div>
+        <div id="chips" class="pill">Jetons: ...</div>
+        <form method="post" action="/reset" style="display:inline">
+          <button class="btn ghost" type="submit">Nouvelle partie</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="stage card">
+        <div class="qhead">
+          <div id="qCounter" class="badge">Question</div>
+          <div id="category" class="badge alt">Catégorie</div>
+        </div>
+        <div id="prompt" class="prompt">Chargement...</div>
+
+        <div class="tables">
+          <div class="table" data-key="A">
+            <div class="tableKey">A</div>
+            <div id="ansA" class="tableAns">...</div>
+            <input id="betA" class="bet" type="number" min="0" step="1" value="0" />
+          </div>
+          <div class="table" data-key="B">
+            <div class="tableKey">B</div>
+            <div id="ansB" class="tableAns">...</div>
+            <input id="betB" class="bet" type="number" min="0" step="1" value="0" />
+          </div>
+          <div class="table" data-key="C">
+            <div class="tableKey">C</div>
+            <div id="ansC" class="tableAns">...</div>
+            <input id="betC" class="bet" type="number" min="0" step="1" value="0" />
+          </div>
+          <div class="table" data-key="D">
+            <div class="tableKey">D</div>
+            <div id="ansD" class="tableAns">...</div>
+            <input id="betD" class="bet" type="number" min="0" step="1" value="0" />
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="summary">
+            <div>Total misé: <span id="totalBet">0</span></div>
+            <div>Non misé: <span id="unbet">0</span></div>
+          </div>
+          <button id="submit" class="btn">Valider la mise</button>
+        </div>
+
+        <div id="message" class="message"></div>
+      </section>
+
+      <aside class="side card">
+        <h2>Classement global</h2>
+        <pre id="leaderboard" class="mono">(chargement...)</pre>
+      </aside>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
