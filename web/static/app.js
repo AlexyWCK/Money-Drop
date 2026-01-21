@@ -1,280 +1,396 @@
+const ANSWER_KEYS = ['A','B','C','D'];
+const TOTAL_TIME = 60;
+const BET_STEP = 100;
+
+function $(id){
+  return document.getElementById(id);
+}
+
 async function getState(){
   const r = await fetch('/api/state');
   if(!r.ok) throw new Error('state');
   return await r.json();
 }
 
-let timerInterval = null;
-let timeRemaining = 45;
-
-function startTimer(){
-  timeRemaining = 45;
-  if(timerInterval) clearInterval(timerInterval);
-  
-  timerInterval = setInterval(() => {
-    timeRemaining--;
-    $('timer').textContent = timeRemaining;
-    
-    // Changement de couleur quand moins de 10 secondes
-    const timerEl = $('timer');
-    if(timeRemaining < 10){
-      timerEl.style.background = 'linear-gradient(180deg, #ff6b6b 0%, #cc0000 100%)';
-      timerEl.style.borderColor = '#ff0000';
-    } else if(timeRemaining < 20){
-      timerEl.style.background = 'linear-gradient(180deg, #ffa500 0%, #ff8c00 100%)';
-      timerEl.style.borderColor = '#ffa500';
-    } else {
-      timerEl.style.background = 'linear-gradient(180deg, #c71e1e 0%, #8b0000 100%)';
-      timerEl.style.borderColor = '#ff6b6b';
-    }
-    
-    if(timeRemaining <= 0){
-      clearInterval(timerInterval);
-      setMessage('Temps écoulé! Soumission automatique...');
-      
-      // Soumettre automatiquement avec l'argent misé
-      // L'argent non misé est perdu
-      setTimeout(() => {
-        autoSubmit();
-      }, 500);
-    }
-  }, 1000);
+function setMessage(text){
+  const el = $('message');
+  if(el) el.textContent = text || '';
 }
 
-function stopTimer(){
-  if(timerInterval) clearInterval(timerInterval);
-}
-
-async function autoSubmit(){
-  clearHighlights();
-  
-  const state = await getState();
-  const b = bets();
-  const sum = totalBet(b);
-  
-  // Soumettre automatiquement même s'il n'a pas tout misé
-  const r = await fetch('/api/bet', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(b)
-  });
-
-  const payload = await r.json().catch(() => ({ok:false, error:'erreur'}));
-  if(!r.ok || !payload.ok){
-    setMessage(`Erreur: ${payload.error || 'inconnue'}`);
-    return;
+function getBets(){
+  const out = {A:0,B:0,C:0,D:0};
+  for(const k of ANSWER_KEYS){
+    const el = $('bet'+k);
+    out[k] = el ? (parseInt(el.value || '0', 10) || 0) : 0;
   }
-
-  const res = payload.resolution;
-  document.querySelector(`.screen-unit[data-key="${res.correct}"]`)?.classList.add('good');
-  document.querySelector(`.drop-table[data-key="${res.correct}"]`)?.classList.add('good');
-  ['A','B','C','D'].filter(k => k !== res.correct).forEach(k => {
-    const v = b[k] || 0;
-    if(v > 0) {
-      document.querySelector(`.screen-unit[data-key="${k}"]`)?.classList.add('bad');
-      document.querySelector(`.drop-table[data-key="${k}"]`)?.classList.add('bad');
-    }
-  });
-
-  setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
-  renderLeaderboard(payload.leaderboard_text);
-  
-  // Arrêter le chrono
-  stopTimer();
-
-  // reset inputs for next question
-  ['A','B','C','D'].forEach(k => document.getElementById('bet'+k).value = '0');
-  await refresh();
+  return out;
 }
 
-function $(id){ 
-  return document.getElementById(id);
+function setBet(key, value){
+  const el = $('bet'+key);
+  if(!el) return;
+  el.value = String(Math.max(0, value|0));
 }
 
-function bets(){
-  return {
-    A: parseInt($('betA').value || '0', 10),
-    B: parseInt($('betB').value || '0', 10),
-    C: parseInt($('betC').value || '0', 10),
-    D: parseInt($('betD').value || '0', 10),
-  };
+function totalBet(b){
+  return (b.A||0)+(b.B||0)+(b.C||0)+(b.D||0);
 }
 
-function updateChipDisplays(){
-  const b = bets();
-  ['A','B','C','D'].forEach(k => {
+function clearHighlights(){
+  document.querySelectorAll('[data-key]').forEach(el => el.classList.remove('good','bad'));
+}
+
+function updateVisuals(state){
+  const b = getBets();
+  const total = totalBet(b);
+  const remaining = Math.max(0, (state?.player?.chips ?? 0) - total);
+
+  const totalBetEl = $('totalBet');
+  if(totalBetEl) totalBetEl.textContent = String(total);
+
+  const unbetEl = $('unbet');
+  if(unbetEl) unbetEl.textContent = String(remaining);
+
+  const unbetValueEl = $('unbetValue');
+  if(unbetValueEl) unbetValueEl.textContent = String(remaining);
+
+  const totalChipsEl = $('totalChips');
+  if(totalChipsEl) totalChipsEl.textContent = String(state?.player?.chips ?? 0);
+
+  // Update amounts under answer cards + zone labels + stacks visual
+  for(const k of ANSWER_KEYS){
     const amount = b[k] || 0;
+    const amountEl = $('amount'+k);
+    if(amountEl) amountEl.textContent = `${amount.toLocaleString('fr-FR')} €`;
+
+    const zoneLabel = $('zoneLabel'+k);
+    if(zoneLabel) zoneLabel.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : 'Glissez ici';
+
     const visual = $('chipsVisual'+k);
     if(visual){
-      // Créer des visuels de liasses de billets
-      const numStacks = Math.min(Math.floor(amount / 100), 8);
+      const stacks = Math.min(Math.floor(amount / 1000), 10);
       visual.innerHTML = '';
-      for(let i = 0; i < numStacks; i++){
+      for(let i=0;i<stacks;i++){
         const stack = document.createElement('div');
         stack.className = 'chip-stack';
         visual.appendChild(stack);
       }
     }
-    // Mettre à jour le montant affiché
-    const amountEl = $('amount'+k);
-    if(amountEl){
-      amountEl.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : '0 €';
+  }
+
+  // Remaining stacks visualization
+  const moneyStacks = $('moneyStacks');
+  if(moneyStacks){
+    const stacks = Math.min(Math.ceil(remaining / 1000), 10);
+    moneyStacks.innerHTML = '';
+    for(let i=0;i<stacks;i++){
+      const stack = document.createElement('div');
+      stack.className = 'chip-stack';
+      moneyStacks.appendChild(stack);
     }
-  });
+  }
+
+  const remainingBar = $('remainingBar');
+  if(remainingBar){
+    const totalChips = Math.max(1, state?.player?.chips ?? 1);
+    const pct = Math.max(0, Math.min(100, (remaining / totalChips) * 100));
+    remainingBar.style.width = `${pct}%`;
+  }
+
+  // Enable validate only when all chips placed
+  const submitBtn = $('submit');
+  if(submitBtn){
+    submitBtn.disabled = !state?.question || !!state?.finished || !!state?.eliminated || remaining !== 0;
+  }
 }
 
-function totalBet(b){ return (b.A||0)+(b.B||0)+(b.C||0)+(b.D||0); }
+function setTimerValue(seconds){
+  const valueEl = $('timerValue');
+  if(valueEl) valueEl.textContent = String(seconds);
 
-function clearHighlights(){
-  document.querySelectorAll('.screen-unit').forEach(t => t.classList.remove('good','bad'));
-  document.querySelectorAll('.drop-table').forEach(t => t.classList.remove('good','bad'));
+  const progressEl = $('timerProgress');
+  if(progressEl){
+    const r = 45;
+    const circumference = 2 * Math.PI * r;
+    const ratio = Math.max(0, Math.min(1, seconds / TOTAL_TIME));
+    const offset = circumference * (1 - ratio);
+    progressEl.style.strokeDasharray = String(circumference);
+    progressEl.style.strokeDashoffset = String(offset);
+
+    if(seconds <= 5) progressEl.style.stroke = 'var(--md-danger)';
+    else if(seconds <= 10) progressEl.style.stroke = 'var(--md-gold)';
+    else progressEl.style.stroke = 'var(--md-cyan)';
+  }
 }
 
-function setMessage(text){ $('message').textContent = text || ''; }
+let timerInterval = null;
+let timeRemaining = TOTAL_TIME;
+let timerQuestionIndex = null;
 
-function renderLeaderboard(text){
-  $('leaderboard').textContent = text || '(vide)';
+function stopTimer(){
+  if(timerInterval){
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
 }
 
-function renderQuestion(state){
-  clearHighlights();
-  setMessage('');
+function startTimerForQuestion(progressIndex){
+  if(timerQuestionIndex === progressIndex && timerInterval) return;
+  timerQuestionIndex = progressIndex;
+  timeRemaining = TOTAL_TIME;
+  setTimerValue(timeRemaining);
+  stopTimer();
 
-  $('playerName').textContent = `Joueur: ${state.player.name}`;
-  $('chips').textContent = `Jetons: ${state.player.chips}`;
-  const qNum = `Q${state.progress.index + 1}`;
-  $('qCounter').textContent = qNum;
-  if($('qCounterRight')) $('qCounterRight').textContent = qNum;
+  timerInterval = setInterval(async ()=>{
+    timeRemaining -= 1;
+    setTimerValue(timeRemaining);
+    if(timeRemaining <= 0){
+      stopTimer();
+      setMessage('Temps écoulé ! Soumission automatique...');
+      setTimeout(()=>{ autoSubmit().catch(()=>{}); }, 250);
+    }
+  }, 1000);
+}
 
-  if(state.finished || state.eliminated || !state.question){
-    $('category').textContent = state.eliminated ? 'Éliminé' : 'Fin';
-    $('prompt').textContent = `Partie terminée. Jetons finaux: ${state.result?.final_chips ?? state.player.chips}`;
-    renderLeaderboard(state.leaderboard_text);
-    document.getElementById('submit').disabled = true;
+function renderLeaderboard(state){
+  const container = $('leaderboard');
+  if(!container) return;
+
+  // Backend provides state.leaderboard as list of {name,best_chips,best_correct}
+  const entries = Array.isArray(state?.leaderboard) ? state.leaderboard : [];
+  container.innerHTML = '';
+
+  if(entries.length === 0){
+    container.textContent = '(Classement vide)';
+    const footer = $('leaderboardFooter');
+    if(footer) footer.textContent = '';
     return;
   }
 
-  $('category').textContent = state.question.category;
-  $('prompt').textContent = state.question.prompt;
-  $('ansA').textContent = state.question.answers.A;
-  $('ansB').textContent = state.question.answers.B;
-  $('ansC').textContent = state.question.answers.C;
-  $('ansD').textContent = state.question.answers.D;
+  entries.forEach((e, idx) => {
+    const row = document.createElement('div');
+    row.className = 'md-lb-row';
 
-  // Reset amounts to 0 € initially
-  $('amountA').textContent = '0 €';
-  $('amountB').textContent = '0 €';
-  $('amountC').textContent = '0 €';
-  $('amountD').textContent = '0 €';
+    const rankClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : '';
+    const correct = Number(e.best_correct ?? 0);
+    const chips = Number(e.best_chips ?? 0);
 
-  document.getElementById('submit').disabled = false;
-  const b = bets();
-  $('totalBet').textContent = totalBet(b);
-  $('unbet').textContent = Math.max(0, state.player.chips - totalBet(b));
-  updateChipDisplays();
-  
-  // Démarrer le chrono pour cette question
-  startTimer();
+    row.innerHTML = `
+      <div class="md-lb-top">
+        <div class="md-lb-rank ${rankClass}">${idx + 1}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="md-lb-name">${escapeHtml(String(e.name ?? ''))}</div>
+          <div class="md-lb-sub">${correct} bonne${correct !== 1 ? 's' : ''} réponse${correct !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="md-lb-score">${chips.toLocaleString('fr-FR')}<small>jetons</small></div>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+
+  const footer = $('leaderboardFooter');
+  if(footer) footer.textContent = `${entries.length} joueurs connectés`;
+}
+
+function escapeHtml(str){
+  return str.replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderState(state){
+  clearHighlights();
+  setMessage('');
+
+  const playerNameEl = $('playerName');
+  if(playerNameEl) playerNameEl.textContent = state?.player?.name ?? '...';
+
+  const chipsEl = $('chips');
+  if(chipsEl) chipsEl.textContent = String(state?.player?.chips ?? '...');
+
+  const qCounterEl = $('qCounter');
+  if(qCounterEl) qCounterEl.textContent = String((state?.progress?.index ?? 0) + 1);
+
+  const categoryEl = $('category');
+  if(categoryEl) categoryEl.textContent = state?.question?.category ?? (state?.eliminated ? 'Éliminé' : '');
+
+  const promptEl = $('prompt');
+  if(promptEl){
+    if(state?.finished || state?.eliminated || !state?.question){
+      promptEl.textContent = `Partie terminée. Jetons finaux: ${state?.result?.final_chips ?? state?.player?.chips ?? 0}`;
+    } else {
+      promptEl.textContent = state.question.prompt;
+    }
+  }
+
+  // Answers
+  for(const k of ANSWER_KEYS){
+    const ansEl = $('ans'+k);
+    if(ansEl){
+      ansEl.textContent = state?.question?.answers?.[k] ?? '';
+    }
+  }
+
+  // Reset bets when changing question
+  if(state?.progress && timerQuestionIndex !== state.progress.index){
+    for(const k of ANSWER_KEYS) setBet(k, 0);
+  }
+
+  updateVisuals(state);
+  renderLeaderboard(state);
+
+  if(state?.question && !state?.finished && !state?.eliminated){
+    startTimerForQuestion(state.progress.index);
+  } else {
+    stopTimer();
+    setTimerValue(0);
+  }
+}
+
+async function refresh(){
+  const state = await getState();
+  renderState(state);
 }
 
 async function submit(){
-  clearHighlights();
   setMessage('');
+  clearHighlights();
 
   const state = await getState();
-  const b = bets();
+  const b = getBets();
   const sum = totalBet(b);
-  
-  // Bloquer si on n'a pas misé tout l'argent
-  if(sum !== state.player.chips){
-    setMessage(`Vous devez miser tous vos jetons! Misé: ${sum} / Disponible: ${state.player.chips}`);
-    return;
-  }
-  
-  if(sum > state.player.chips){
-    setMessage(`Mises (${sum}) > jetons disponibles (${state.player.chips}).`);
+
+  // Web app config currently allows unbet chips, but UI wants full distribute.
+  if(sum !== (state?.player?.chips ?? 0)){
+    setMessage(`Vous devez miser tous vos jetons ! Misé: ${sum} / Disponible: ${state?.player?.chips ?? 0}`);
     return;
   }
 
   const r = await fetch('/api/bet', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
     body: JSON.stringify(b)
   });
+  const payload = await r.json().catch(()=>({ok:false, error:'erreur'}));
+  if(!r.ok || !payload.ok){
+    setMessage(`Erreur: ${payload.error || 'inconnue'}`);
+    return;
+  }
 
-  const payload = await r.json().catch(() => ({ok:false, error:'erreur'}));
+  stopTimer();
+
+  const res = payload.resolution;
+  document.querySelector(`.md-answer[data-key="${res.correct}"]`)?.classList.add('good');
+  document.querySelector(`.md-zone[data-key="${res.correct}"]`)?.classList.add('good');
+  for(const k of ANSWER_KEYS){
+    if(k === res.correct) continue;
+    if((b[k]||0) > 0){
+      document.querySelector(`.md-answer[data-key="${k}"]`)?.classList.add('bad');
+      document.querySelector(`.md-zone[data-key="${k}"]`)?.classList.add('bad');
+    }
+  }
+
+  setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
+
+  // Refresh state for next question
+  setTimeout(()=>{ refresh().catch(()=>{}); }, 500);
+}
+
+async function autoSubmit(){
+  // Auto-submit even if not fully distributed (backend allows it)
+  const b = getBets();
+
+  const r = await fetch('/api/bet', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(b)
+  });
+  const payload = await r.json().catch(()=>({ok:false, error:'erreur'}));
   if(!r.ok || !payload.ok){
     setMessage(`Erreur: ${payload.error || 'inconnue'}`);
     return;
   }
 
   const res = payload.resolution;
-  document.querySelector(`.screen-unit[data-key="${res.correct}"]`)?.classList.add('good');
-  document.querySelector(`.drop-table[data-key="${res.correct}"]`)?.classList.add('good');
-  ['A','B','C','D'].filter(k => k !== res.correct).forEach(k => {
-    const v = b[k] || 0;
-    if(v > 0) {
-      document.querySelector(`.screen-unit[data-key="${k}"]`)?.classList.add('bad');
-      document.querySelector(`.drop-table[data-key="${k}"]`)?.classList.add('bad');
-    }
-  });
+  document.querySelector(`.md-answer[data-key="${res.correct}"]`)?.classList.add('good');
+  document.querySelector(`.md-zone[data-key="${res.correct}"]`)?.classList.add('good');
 
   setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
-  renderLeaderboard(payload.leaderboard_text);
-  
-  // Arrêter le chrono
-  stopTimer();
-
-  // reset inputs for next question
-  ['A','B','C','D'].forEach(k => document.getElementById('bet'+k).value = '0');
-  await refresh();
+  setTimeout(()=>{ refresh().catch(()=>{}); }, 500);
 }
 
-async function refresh(){
+function clampBetsToChips(state){
+  const chips = state?.player?.chips ?? 0;
+  const b = getBets();
+  let sum = totalBet(b);
+  if(sum <= chips) return;
+
+  // Reduce from the biggest bet first
+  const keys = [...ANSWER_KEYS].sort((a,bk) => (b[bk]||0) - (b[a]||0));
+  let excess = sum - chips;
+  for(const k of keys){
+    if(excess <= 0) break;
+    const cur = b[k] || 0;
+    const delta = Math.min(cur, excess);
+    b[k] = cur - delta;
+    excess -= delta;
+  }
+  for(const k of ANSWER_KEYS) setBet(k, b[k]||0);
+}
+
+async function onAdjust(key, dir){
   const state = await getState();
-  renderLeaderboard(state.leaderboard_text || '');
-  renderQuestion(state);
+  const chips = state?.player?.chips ?? 0;
+  const b = getBets();
+  const current = b[key] || 0;
+
+  let next = current + (dir === 'plus' ? BET_STEP : -BET_STEP);
+  next = Math.max(0, next);
+  b[key] = next;
+
+  // Cap total to chips
+  const sum = totalBet(b);
+  if(sum > chips){
+    b[key] = Math.max(0, next - (sum - chips));
+  }
+
+  for(const k of ANSWER_KEYS) setBet(k, b[k]||0);
+  updateVisuals(state);
 }
 
-function bind(){
-  // Ne s'exécute que s'il y a l'élément submit (page /play)
-  if(!document.getElementById('submit')) return;
-  
-  ['A','B','C','D'].forEach(k => {
-    const input = document.getElementById('bet'+k);
-    input.addEventListener('input', async () => {
-      const state = await getState();
-      const b = bets();
-      const sum = totalBet(b);
-      
-      // Bloquer si dépasse les jetons disponibles
-      if(sum > state.player.chips){
-        // Réduire la mise actuelle
-        const excess = sum - state.player.chips;
-        const current = b[k] || 0;
-        const allowed = Math.max(0, current - excess);
-        input.value = allowed;
-        
-        // Recalculer
-        const newB = bets();
-        $('totalBet').textContent = totalBet(newB);
-        $('unbet').textContent = Math.max(0, state.player.chips - totalBet(newB));
-        updateChipDisplays();
-      } else {
-        $('totalBet').textContent = totalBet(b);
-        $('unbet').textContent = Math.max(0, state.player.chips - totalBet(b));
-        updateChipDisplays();
-      }
+function bindPlay(){
+  const submitBtn = $('submit');
+  if(!submitBtn) return;
+
+  submitBtn.addEventListener('click', ()=>{ submit().catch(()=>{}); });
+
+  // +/- buttons
+  document.querySelectorAll('button[data-action][data-key]').forEach(btn => {
+    btn.addEventListener('click', (ev)=>{
+      const action = ev.currentTarget.getAttribute('data-action');
+      const key = ev.currentTarget.getAttribute('data-key');
+      if(!ANSWER_KEYS.includes(key)) return;
+      onAdjust(key, action).catch(()=>{});
     });
   });
-  document.getElementById('submit').addEventListener('click', submit);
-}
 
-bind();
-if(document.getElementById('submit')){
-  // Code de jeu (page /play)
+  // If user edits hidden inputs via devtools, keep totals sane
+  for(const k of ANSWER_KEYS){
+    const input = $('bet'+k);
+    if(!input) continue;
+    input.addEventListener('input', async ()=>{
+      const st = await getState();
+      clampBetsToChips(st);
+      updateVisuals(st);
+    });
+  }
+
   refresh().catch(() => { window.location.href = '/'; });
 }
+
+bindPlay();
 
 // Lobby UI handlers (on index.html)
 async function postJson(url, data){
@@ -358,3 +474,4 @@ if(location.pathname === '/play'){
     poll();
   }
 }
+
