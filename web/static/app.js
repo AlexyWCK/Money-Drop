@@ -312,6 +312,16 @@ async function submit(){
   stopTimer();
 
   const res = payload.resolution;
+  // Cinématique de résolution type Money Drop
+  if(window.MD_RESOLUTION && typeof window.MD_RESOLUTION.play === 'function'){
+    try{
+      await window.MD_RESOLUTION.play({ correct: res.correct, bets: b });
+    }catch(e){
+      // no-op: fallback to normal flow
+    }
+  }
+
+  // Applique les états finaux
   document.querySelector(`.md-answer[data-key="${res.correct}"]`)?.classList.add('good');
   document.querySelector(`.md-zone[data-key="${res.correct}"]`)?.classList.add('good');
   for(const k of ANSWER_KEYS){
@@ -325,7 +335,7 @@ async function submit(){
   setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
 
   // Refresh state for next question
-  setTimeout(()=>{ refresh().catch(()=>{}); }, 500);
+  setTimeout(()=>{ refresh().catch(()=>{}); }, 650);
 }
 
 async function autoSubmit(){
@@ -344,11 +354,19 @@ async function autoSubmit(){
   }
 
   const res = payload.resolution;
+  if(window.MD_RESOLUTION && typeof window.MD_RESOLUTION.play === 'function'){
+    try{
+      await window.MD_RESOLUTION.play({ correct: res.correct, bets: b });
+    }catch(e){
+      // no-op
+    }
+  }
+
   document.querySelector(`.md-answer[data-key="${res.correct}"]`)?.classList.add('good');
   document.querySelector(`.md-zone[data-key="${res.correct}"]`)?.classList.add('good');
 
   setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
-  setTimeout(()=>{ refresh().catch(()=>{}); }, 500);
+  setTimeout(()=>{ refresh().catch(()=>{}); }, 650);
 }
 
 function clampBetsToChips(state){
