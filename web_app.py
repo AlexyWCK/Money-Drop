@@ -9,7 +9,7 @@ from moneydrop.engine import MoneyDropEngine
 from moneydrop.leaderboard import Leaderboard
 from moneydrop.models import GameConfig
 from moneydrop.questions import build_question_bank
-from moneydrop.session import GameSession, SessionManager
+from moneydrop.session import GameSession, SessionManager, LobbyManager, LobbyPlayer
 
 
 BASE_DIR = Path(__file__).resolve().parent
