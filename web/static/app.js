@@ -4,7 +4,92 @@ async function getState(){
   return await r.json();
 }
 
-function $(id){ return document.getElementById(id); }
+let timerInterval = null;
+let timeRemaining = 45;
+
+function startTimer(){
+  timeRemaining = 45;
+  if(timerInterval) clearInterval(timerInterval);
+  
+  timerInterval = setInterval(() => {
+    timeRemaining--;
+    $('timer').textContent = timeRemaining;
+    
+    // Changement de couleur quand moins de 10 secondes
+    const timerEl = $('timer');
+    if(timeRemaining < 10){
+      timerEl.style.background = 'linear-gradient(180deg, #ff6b6b 0%, #cc0000 100%)';
+      timerEl.style.borderColor = '#ff0000';
+    } else if(timeRemaining < 20){
+      timerEl.style.background = 'linear-gradient(180deg, #ffa500 0%, #ff8c00 100%)';
+      timerEl.style.borderColor = '#ffa500';
+    } else {
+      timerEl.style.background = 'linear-gradient(180deg, #c71e1e 0%, #8b0000 100%)';
+      timerEl.style.borderColor = '#ff6b6b';
+    }
+    
+    if(timeRemaining <= 0){
+      clearInterval(timerInterval);
+      setMessage('Temps écoulé! Soumission automatique...');
+      
+      // Soumettre automatiquement avec l'argent misé
+      // L'argent non misé est perdu
+      setTimeout(() => {
+        autoSubmit();
+      }, 500);
+    }
+  }, 1000);
+}
+
+function stopTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+}
+
+async function autoSubmit(){
+  clearHighlights();
+  
+  const state = await getState();
+  const b = bets();
+  const sum = totalBet(b);
+  
+  // Soumettre automatiquement même s'il n'a pas tout misé
+  const r = await fetch('/api/bet', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(b)
+  });
+
+  const payload = await r.json().catch(() => ({ok:false, error:'erreur'}));
+  if(!r.ok || !payload.ok){
+    setMessage(`Erreur: ${payload.error || 'inconnue'}`);
+    return;
+  }
+
+  const res = payload.resolution;
+  document.querySelector(`.screen-unit[data-key="${res.correct}"]`)?.classList.add('good');
+  document.querySelector(`.drop-table[data-key="${res.correct}"]`)?.classList.add('good');
+  ['A','B','C','D'].filter(k => k !== res.correct).forEach(k => {
+    const v = b[k] || 0;
+    if(v > 0) {
+      document.querySelector(`.screen-unit[data-key="${k}"]`)?.classList.add('bad');
+      document.querySelector(`.drop-table[data-key="${k}"]`)?.classList.add('bad');
+    }
+  });
+
+  setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
+  renderLeaderboard(payload.leaderboard_text);
+  
+  // Arrêter le chrono
+  stopTimer();
+
+  // reset inputs for next question
+  ['A','B','C','D'].forEach(k => document.getElementById('bet'+k).value = '0');
+  await refresh();
+}
+
+function $(id){ 
+  return document.getElementById(id);
+}
 
 function bets(){
   return {
@@ -15,10 +100,34 @@ function bets(){
   };
 }
 
+function updateChipDisplays(){
+  const b = bets();
+  ['A','B','C','D'].forEach(k => {
+    const amount = b[k] || 0;
+    const visual = $('chipsVisual'+k);
+    if(visual){
+      // Créer des visuels de liasses de billets
+      const numStacks = Math.min(Math.floor(amount / 100), 8);
+      visual.innerHTML = '';
+      for(let i = 0; i < numStacks; i++){
+        const stack = document.createElement('div');
+        stack.className = 'chip-stack';
+        visual.appendChild(stack);
+      }
+    }
+    // Mettre à jour le montant affiché
+    const amountEl = $('amount'+k);
+    if(amountEl){
+      amountEl.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : '0 €';
+    }
+  });
+}
+
 function totalBet(b){ return (b.A||0)+(b.B||0)+(b.C||0)+(b.D||0); }
 
 function clearHighlights(){
-  document.querySelectorAll('.table').forEach(t => t.classList.remove('good','bad'));
+  document.querySelectorAll('.screen-unit').forEach(t => t.classList.remove('good','bad'));
+  document.querySelectorAll('.drop-table').forEach(t => t.classList.remove('good','bad'));
 }
 
 function setMessage(text){ $('message').textContent = text || ''; }
@@ -33,7 +142,9 @@ function renderQuestion(state){
 
   $('playerName').textContent = `Joueur: ${state.player.name}`;
   $('chips').textContent = `Jetons: ${state.player.chips}`;
-  $('qCounter').textContent = `Question ${state.progress.index + 1}/${state.progress.total}`;
+  const qNum = `Q${state.progress.index + 1}`;
+  $('qCounter').textContent = qNum;
+  if($('qCounterRight')) $('qCounterRight').textContent = qNum;
 
   if(state.finished || state.eliminated || !state.question){
     $('category').textContent = state.eliminated ? 'Éliminé' : 'Fin';
@@ -50,10 +161,20 @@ function renderQuestion(state){
   $('ansC').textContent = state.question.answers.C;
   $('ansD').textContent = state.question.answers.D;
 
+  // Reset amounts to 0 € initially
+  $('amountA').textContent = '0 €';
+  $('amountB').textContent = '0 €';
+  $('amountC').textContent = '0 €';
+  $('amountD').textContent = '0 €';
+
   document.getElementById('submit').disabled = false;
   const b = bets();
   $('totalBet').textContent = totalBet(b);
   $('unbet').textContent = Math.max(0, state.player.chips - totalBet(b));
+  updateChipDisplays();
+  
+  // Démarrer le chrono pour cette question
+  startTimer();
 }
 
 async function submit(){
@@ -63,6 +184,13 @@ async function submit(){
   const state = await getState();
   const b = bets();
   const sum = totalBet(b);
+  
+  // Bloquer si on n'a pas misé tout l'argent
+  if(sum !== state.player.chips){
+    setMessage(`Vous devez miser tous vos jetons! Misé: ${sum} / Disponible: ${state.player.chips}`);
+    return;
+  }
+  
   if(sum > state.player.chips){
     setMessage(`Mises (${sum}) > jetons disponibles (${state.player.chips}).`);
     return;
@@ -81,14 +209,21 @@ async function submit(){
   }
 
   const res = payload.resolution;
-  document.querySelector(`.table[data-key="${res.correct}"]`)?.classList.add('good');
+  document.querySelector(`.screen-unit[data-key="${res.correct}"]`)?.classList.add('good');
+  document.querySelector(`.drop-table[data-key="${res.correct}"]`)?.classList.add('good');
   ['A','B','C','D'].filter(k => k !== res.correct).forEach(k => {
     const v = b[k] || 0;
-    if(v > 0) document.querySelector(`.table[data-key="${k}"]`)?.classList.add('bad');
+    if(v > 0) {
+      document.querySelector(`.screen-unit[data-key="${k}"]`)?.classList.add('bad');
+      document.querySelector(`.drop-table[data-key="${k}"]`)?.classList.add('bad');
+    }
   });
 
   setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
   renderLeaderboard(payload.leaderboard_text);
+  
+  // Arrêter le chrono
+  stopTimer();
 
   // reset inputs for next question
   ['A','B','C','D'].forEach(k => document.getElementById('bet'+k).value = '0');
@@ -102,19 +237,44 @@ async function refresh(){
 }
 
 function bind(){
+  // Ne s'exécute que s'il y a l'élément submit (page /play)
+  if(!document.getElementById('submit')) return;
+  
   ['A','B','C','D'].forEach(k => {
-    document.getElementById('bet'+k).addEventListener('input', async () => {
+    const input = document.getElementById('bet'+k);
+    input.addEventListener('input', async () => {
       const state = await getState();
       const b = bets();
-      $('totalBet').textContent = totalBet(b);
-      $('unbet').textContent = Math.max(0, state.player.chips - totalBet(b));
+      const sum = totalBet(b);
+      
+      // Bloquer si dépasse les jetons disponibles
+      if(sum > state.player.chips){
+        // Réduire la mise actuelle
+        const excess = sum - state.player.chips;
+        const current = b[k] || 0;
+        const allowed = Math.max(0, current - excess);
+        input.value = allowed;
+        
+        // Recalculer
+        const newB = bets();
+        $('totalBet').textContent = totalBet(newB);
+        $('unbet').textContent = Math.max(0, state.player.chips - totalBet(newB));
+        updateChipDisplays();
+      } else {
+        $('totalBet').textContent = totalBet(b);
+        $('unbet').textContent = Math.max(0, state.player.chips - totalBet(b));
+        updateChipDisplays();
+      }
     });
   });
   document.getElementById('submit').addEventListener('click', submit);
 }
 
 bind();
-refresh().catch(() => { window.location.href = '/'; });
+if(document.getElementById('submit')){
+  // Code de jeu (page /play)
+  refresh().catch(() => { window.location.href = '/'; });
+}
 
 // Lobby UI handlers (on index.html)
 async function postJson(url, data){
