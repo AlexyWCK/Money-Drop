@@ -139,6 +139,9 @@ let timerInterval = null;
 let timeRemaining = TOTAL_TIME;
 let timerQuestionIndex = null;
 
+// Cinématique: empêche de relancer l'anim sur chaque refresh
+let cinematicQuestionIndex = null;
+
 function stopTimer(){
   if(timerInterval){
     clearInterval(timerInterval);
@@ -254,7 +257,22 @@ function renderState(state){
   renderLeaderboard(state);
 
   if(state?.question && !state?.finished && !state?.eliminated){
-    startTimerForQuestion(state.progress.index);
+    const idx = Number(state?.progress?.index ?? 0);
+
+    // Joue la cinématique uniquement quand la question change
+    if(window.MD_CINEMATIC && typeof window.MD_CINEMATIC.playOnce === 'function' && cinematicQuestionIndex !== idx){
+      cinematicQuestionIndex = idx;
+      stopTimer();
+      setTimerValue(TOTAL_TIME);
+      const played = window.MD_CINEMATIC.playOnce({
+        index: idx,
+        prompt: state.question.prompt,
+        onAfterReveal: () => startTimerForQuestion(idx)
+      });
+      if(played) return;
+    }
+
+    startTimerForQuestion(idx);
   } else {
     stopTimer();
     setTimerValue(0);
