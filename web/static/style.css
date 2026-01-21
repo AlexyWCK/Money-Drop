@@ -1,3 +1,63 @@
+/* Boutons principaux du menu : effet néon accentué */
+
+/* Boutons principaux du menu : style soft, arrondi, ombre douce */
+.md-menu-main {
+  background: rgba(0, 234, 255, 0.13) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 24px 0 #00eaff33, 0 1.5px 8px 0 #0003 !important;
+  border: 1.5px solid #00eaff55 !important;
+  border-radius: 18px !important;
+  text-shadow: 0 1px 4px #0006;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transition: background 0.18s, box-shadow 0.18s, border 0.18s;
+}
+.md-menu-main:hover, .md-menu-main:focus {
+  background: rgba(0, 234, 255, 0.22) !important;
+  box-shadow: 0 6px 32px 0 #00eaff55, 0 2px 12px 0 #0004 !important;
+  border-color: #00eaff99 !important;
+}
+
+/* Formulaire solo moderne, fond flouté, contour doux */
+#menu-solo .form {
+  background: rgba(24, 28, 43, 0.72);
+  border-radius: 18px;
+  border: 1.5px solid #00eaff33;
+  box-shadow: 0 4px 32px 0 #00eaff22, 0 1.5px 8px 0 #0003;
+  padding: 32px 28px 22px 28px;
+  margin: 0 auto;
+  max-width: 340px;
+  backdrop-filter: blur(7px) saturate(1.2);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: stretch;
+}
+#menu-solo label {
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 2px;
+  letter-spacing: 0.02em;
+}
+#menu-solo input {
+  background: rgba(255,255,255,0.08);
+  border: 1.2px solid #00eaff33;
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 1.08rem;
+  margin-bottom: 8px;
+  outline: none;
+  transition: border 0.18s, background 0.18s;
+}
+#menu-solo input:focus {
+  border-color: #00eaff99;
+  background: rgba(0,234,255,0.10);
+}
+#menu-solo .md-menu-btn {
+  margin-top: 10px;
+}
 /* Vidéo de fond fullscreen */
 .md-bg-video {
   position: fixed;
