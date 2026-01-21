@@ -48,13 +48,16 @@
         <button class="md-menu-btn md-menu-back" id="btnBackHost">Retour</button>
       </div>
       <div class="md-menu-card" id="menu-join" style="display:none">
-        <form id="joinForm" class="form" method="post" action="/lobby/join">
+        <div style="margin-bottom: 15px;">
           <label>Nom du joueur</label>
-          <input name="name" required placeholder="Ex: Alice" />
-          <label>ID du salon</label>
-          <input name="lobby_id" required placeholder="ID salon" />
-          <button class="md-menu-btn md-menu-sub" type="submit">Rejoindre</button>
-        </form>
+          <input id="joinName" required placeholder="Ex: Alice" />
+        </div>
+        <div style="margin-bottom: 15px;">
+          <label>Salons disponibles</label>
+          <div id="lobbiesList" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto;">
+            <div style="color: var(--muted); text-align: center; padding: 10px;">Chargement...</div>
+          </div>
+        </div>
         <button class="md-menu-btn md-menu-back" id="btnBackJoin">Retour</button>
       </div>
     </main>
