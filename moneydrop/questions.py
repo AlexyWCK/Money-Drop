@@ -13,7 +13,6 @@ def build_question_bank() -> list[Question]:
     """
 
     q: list[Question] = []
-
     # --- MUSIQUE ---
     q += [
         Question(
