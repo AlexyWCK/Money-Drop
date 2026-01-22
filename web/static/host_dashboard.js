@@ -91,7 +91,6 @@
   }
 
   document.getElementById('btnStart').onclick = () => socket.emit('host_start', { lobby_id: lobbyId });
-  document.getElementById('btnAsk').onclick = () => socket.emit('host_launch_question', { lobby_id: lobbyId });
   document.getElementById('btnPause').onclick = () => socket.emit('host_pause', { lobby_id: lobbyId });
   document.getElementById('btnResume').onclick = () => socket.emit('host_resume', { lobby_id: lobbyId });
   document.getElementById('btnForce').onclick = () => socket.emit('host_force_validate', { lobby_id: lobbyId });

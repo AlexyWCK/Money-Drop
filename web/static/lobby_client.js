@@ -25,7 +25,31 @@
   socket.on('game_started', () => {
     if(!gameStarted){
       gameStarted = true;
+      // Affichage immédiat du plateau de jeu (sans attendre)
       showGameBoard();
+    }
+  });
+
+  // Animation cinématique pour nouvelle question
+  socket.on('new_question', () => {
+    hasBet = false;
+    currentBets = { A: 0, B: 0, C: 0, D: 0 };
+    updateBetDisplay();
+    
+    // Déclencher immédiatement l'animation de question
+    if(currentState?.question?.prompt && window.MD_CINEMATIC){
+      timerActive = false;
+      window.MD_CINEMATIC.playOnce({
+        index: currentState.question_index,
+        prompt: currentState.question.prompt,
+        onAfterReveal: () => {
+          // Après l'animation : plateau visible + mises possibles + timer actif
+          renderAnswers(currentState);
+          enableBetting();
+          timerActive = true;
+          setMsg('Placez vos jetons et validez votre mise !', 'info');
+        }
+      });
     }
   });
   
@@ -60,13 +84,6 @@
     const remaining = p?.time_remaining ?? 0;
     document.getElementById('timerValue').textContent = Math.max(0, remaining);
     updateTimerProgress(remaining);
-  });
-
-  // Animation cinématique pour nouvelle question
-  socket.on('new_question', () => {
-    hasBet = false;
-    currentBets = { A: 0, B: 0, C: 0, D: 0 };
-    updateBetDisplay();
   });
 
   async function playResolutionOnce(correct, questionIndex){
@@ -142,43 +159,20 @@
     document.getElementById('prompt').textContent = state.question?.prompt ?? '';
     document.getElementById('timerValue').textContent = String(state.time_remaining ?? 60);
 
-    // Déclencher l'animation cinématique si nouvelle question en phase "question"
-    if(state.phase === 'question' && state.question?.prompt && window.MD_CINEMATIC){
-      // Pendant la cinématique, on n'affiche pas le décompte
-      timerActive = false;
-      const played = window.MD_CINEMATIC.playOnce({
-        index: state.question_index,
-        prompt: state.question.prompt,
-        onAfterReveal: () => {
-          // Après l'animation, afficher les réponses + activer le chrono
-          renderAnswers(state);
-          enableBetting();
-          timerActive = true;
-        }
-      });
-
-      // Si la cinématique a déjà été jouée pour cette question, on montre directement
-      if(played === false){
-        renderAnswers(state);
-        timerActive = true;
-      }
-    } else {
-      renderAnswers(state);
-      timerActive = (state.phase === 'question');
-    }
+    // Ne pas déclencher l'animation cinématique ici, elle est gérée par l'événement new_question
+    renderAnswers(state);
 
     // Classement
     renderLeaderboard(state.players || []);
 
     // Messages selon la phase
     if(state.phase === 'waiting'){
-      setMsg('En attente du lancement de la question...', 'info');
+      setMsg('En attente du lancement de la partie...', 'info');
       disableBetting();
       timerActive = false;
     } else if(state.phase === 'question'){
-      if(!hasBet){
-        setMsg('Placez vos jetons et validez votre mise !', 'info');
-      }
+      // Le message sera géré par l'animation new_question
+      timerActive = (state.question && !resolving);
     } else if(state.phase === 'results'){
       setMsg(state.correct ? `✓ Réponse correcte: ${state.correct}` : '✗ Résultats', 'info');
       disableBetting();

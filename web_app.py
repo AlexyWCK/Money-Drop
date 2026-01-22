@@ -185,6 +185,17 @@ def create_app() -> Flask:
                     return  # Mise invalide
                 p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
 
+        def all_players_bet(self) -> bool:
+            """Vérifie si tous les joueurs ont misé"""
+            with self.lock:
+                if self.phase != "question":
+                    return False
+                for p in self.players.values():
+                    total_bet = sum(p.bets.values())
+                    if total_bet == 0:  # Joueur n'a pas encore misé
+                        return False
+                return len(self.players) > 0  # Au moins un joueur et tous ont misé
+
         def validate(self) -> None:
             with self.lock:
                 if self.phase not in ("question", "paused"):
@@ -261,7 +272,8 @@ def create_app() -> Flask:
                 time_limit=max(5, min(int(time_limit), 120)),
                 question_total=10,
             )
-            lobby.add_player(host_sid, host_name)
+            # Ne pas ajouter automatiquement le host comme joueur
+            # lobby.add_player(host_sid, host_name)
             with self._lock:
                 self._lobbies[lobby_id] = lobby
             return lobby
@@ -455,6 +467,17 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Lobby ou session invalide"})
             return
         lobby.place_bets(sid, bets)
+        
+        # Vérifier si tous les joueurs ont misé pour terminer automatiquement le tour
+        if lobby.all_players_bet():
+            lobby.validate()
+            # Émettre l'événement de révélation de la réponse
+            socketio.emit(
+                "reveal_answer",
+                {"correct": lobby.correct, "question_index": lobby.question_index},
+                room=lobby_id,
+            )
+        
         _emit_state(lobby)
 
     @socketio.on("host_start")
@@ -468,9 +491,14 @@ def create_app() -> Flask:
         if not _is_host(lobby):
             emit("error_msg", {"error": "Host uniquement"})
             return
+        
+        # Initialiser le jeu ET lancer automatiquement la première question
         lobby.start_game(_shuffled_questions(lobby.question_total))
-        # Émettre un événement pour indiquer que le jeu a démarré
+        lobby.launch_question()
+        
+        # Émettre les événements pour déclencher l'animation côté client
         socketio.emit("game_started", {}, room=lobby_id)
+        socketio.emit("new_question", {}, room=lobby_id)
         _emit_state(lobby)
 
     @socketio.on("host_launch_question")
