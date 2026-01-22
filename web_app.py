@@ -77,6 +77,9 @@ def create_app() -> Flask:
         correct: Optional[str] = None
         players: Dict[str, RTPlayer] = field(default_factory=dict)
 
+        # Durée de la cinématique côté client avant affichage du plateau (voir web/static/cinematic.js)
+        CINEMATIC_DELAY_SECONDS = 7.5
+
         def add_player(self, sid: str, name: str, socket_sid: str = None) -> None:
             with self.lock:
                 if sid in self.players:
@@ -90,7 +93,7 @@ def create_app() -> Flask:
 
         def time_remaining(self) -> Optional[int]:
             if self.phase == "question" and self.question_started_at is not None:
-                elapsed = time.time() - self.question_started_at
+                elapsed = max(0.0, time.time() - self.question_started_at)
                 return max(0, int(self.time_limit - elapsed))
             if self.phase == "paused" and self.paused_remaining is not None:
                 return int(self.paused_remaining)
@@ -137,7 +140,8 @@ def create_app() -> Flask:
                     p.is_correct = None
                     p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
                 self.phase = "question"
-                self.question_started_at = time.time()
+                # Le chrono démarre après la cinématique (plateau visible)
+                self.question_started_at = time.time() + self.CINEMATIC_DELAY_SECONDS
                 self.paused_remaining = None
 
         def pause(self) -> None:
@@ -465,6 +469,8 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Host uniquement"})
             return
         lobby.start_game(_shuffled_questions(lobby.question_total))
+        # Émettre un événement pour indiquer que le jeu a démarré
+        socketio.emit("game_started", {}, room=lobby_id)
         _emit_state(lobby)
 
     @socketio.on("host_launch_question")
@@ -524,7 +530,11 @@ def create_app() -> Flask:
             return
         lobby.validate()
         # Émettre l'événement de révélation de la réponse
-        socketio.emit("reveal_answer", {"correct": lobby.correct}, room=lobby_id)
+        socketio.emit(
+            "reveal_answer",
+            {"correct": lobby.correct, "question_index": lobby.question_index},
+            room=lobby_id,
+        )
         _emit_state(lobby)
 
     @socketio.on("host_next_question")
@@ -547,6 +557,12 @@ def create_app() -> Flask:
                 for lobby in rt_lobbies.all().values():
                     if lobby.phase == "question" and (lobby.time_remaining() or 0) <= 0:
                         lobby.validate()
+                        # Émettre l'événement de révélation de la réponse
+                        socketio.emit(
+                            "reveal_answer",
+                            {"correct": lobby.correct, "question_index": lobby.question_index},
+                            room=lobby.lobby_id,
+                        )
                         _emit_state(lobby)
                     socketio.emit("tick", {"time_remaining": lobby.time_remaining()}, room=lobby.lobby_id)
             except Exception:

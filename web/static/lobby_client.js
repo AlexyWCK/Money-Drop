@@ -8,6 +8,9 @@
   let currentBets = { A: 0, B: 0, C: 0, D: 0 };
   let hasBet = false;
   let gameStarted = false;
+  let timerActive = false;
+  let resolving = false;
+  let lastResolvedQuestionIndex = null;
 
   // Connexion SocketIO sur le même host que la page
   const socket = io(window.location.origin, { transports: ['websocket','polling'] });
@@ -17,6 +20,14 @@
   });
 
   socket.on('error_msg', (p) => setMsg(p?.error || 'Erreur', 'error'));
+  
+  // Événement déclenché quand l'hôte lance la partie
+  socket.on('game_started', () => {
+    if(!gameStarted){
+      gameStarted = true;
+      showGameBoard();
+    }
+  });
   
   socket.on('state', (state) => {
     currentState = state;
@@ -31,10 +42,9 @@
     }
     
     // Gérer la transition entre lobby et jeu
-    // On reste en mode lobby si: phase=waiting ET aucune question n'a encore été lancée
-    const inLobbyWaitingRoom = state.phase === 'waiting' && (state.question_total === 10 || state.question_total === 7) && state.question_index === 0 && !state.question;
+    const inLobbyWaitingRoom = !gameStarted && state.phase === 'waiting' && state.question_index === 0 && !state.question;
     
-    if(inLobbyWaitingRoom && !gameStarted){
+    if(inLobbyWaitingRoom){
       showLobbyWaiting(state);
     } else {
       if(!gameStarted){
@@ -46,6 +56,7 @@
   });
 
   socket.on('tick', (p) => {
+    if(!timerActive) return;
     const remaining = p?.time_remaining ?? 0;
     document.getElementById('timerValue').textContent = Math.max(0, remaining);
     updateTimerProgress(remaining);
@@ -58,11 +69,24 @@
     updateBetDisplay();
   });
 
+  async function playResolutionOnce(correct, questionIndex){
+    if(!window.MD_RESOLUTION || !correct) return;
+    if(resolving) return;
+    if(questionIndex != null && lastResolvedQuestionIndex === questionIndex) return;
+
+    resolving = true;
+    timerActive = false;
+    if(questionIndex != null) lastResolvedQuestionIndex = questionIndex;
+    try{
+      await window.MD_RESOLUTION.play({ correct, bets: currentBets });
+    } finally {
+      resolving = false;
+    }
+  }
+
   // Animation résolution
   socket.on('reveal_answer', (data) => {
-    if(window.MD_RESOLUTION){
-      window.MD_RESOLUTION.play({ correct: data.correct, bets: currentBets });
-    }
+    playResolutionOnce(data?.correct, data?.question_index);
   });
 
   function showLobbyWaiting(state){
@@ -120,17 +144,27 @@
 
     // Déclencher l'animation cinématique si nouvelle question en phase "question"
     if(state.phase === 'question' && state.question?.prompt && window.MD_CINEMATIC){
-      window.MD_CINEMATIC.playOnce({
+      // Pendant la cinématique, on n'affiche pas le décompte
+      timerActive = false;
+      const played = window.MD_CINEMATIC.playOnce({
         index: state.question_index,
         prompt: state.question.prompt,
         onAfterReveal: () => {
-          // Après l'animation, afficher les réponses
+          // Après l'animation, afficher les réponses + activer le chrono
           renderAnswers(state);
           enableBetting();
+          timerActive = true;
         }
       });
+
+      // Si la cinématique a déjà été jouée pour cette question, on montre directement
+      if(played === false){
+        renderAnswers(state);
+        timerActive = true;
+      }
     } else {
       renderAnswers(state);
+      timerActive = (state.phase === 'question');
     }
 
     // Classement
@@ -140,6 +174,7 @@
     if(state.phase === 'waiting'){
       setMsg('En attente du lancement de la question...', 'info');
       disableBetting();
+      timerActive = false;
     } else if(state.phase === 'question'){
       if(!hasBet){
         setMsg('Placez vos jetons et validez votre mise !', 'info');
@@ -147,12 +182,19 @@
     } else if(state.phase === 'results'){
       setMsg(state.correct ? `✓ Réponse correcte: ${state.correct}` : '✗ Résultats', 'info');
       disableBetting();
+      timerActive = false;
+      // Si on arrive ici sans avoir reçu reveal_answer (ex: refresh), on joue l'animation
+      if(state.correct){
+        playResolutionOnce(state.correct, state.question_index);
+      }
     } else if(state.phase === 'paused'){
       setMsg('Pause...', 'info');
       disableBetting();
+      timerActive = false;
     } else if(state.phase === 'finished'){
       setMsg('Partie terminée !', 'success');
       disableBetting();
+      timerActive = false;
     }
   }
 

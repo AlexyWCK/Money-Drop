@@ -4,6 +4,12 @@
 
   function setMsg(t){ msgEl.textContent = t || ''; }
 
+  // Musique de décompte pour l'hôte uniquement
+  const countdownMusic = new Audio('/static/musique_décompte.mp3');
+  countdownMusic.loop = true;
+  countdownMusic.volume = 0.5;
+  let musicPlaying = false;
+
   // Connexion SocketIO sur le même host que la page
   const socket = io(window.location.origin, { transports: ['websocket','polling'] });
 
@@ -16,6 +22,17 @@
   socket.on('tick', (p) => {
     const el = document.getElementById('timeRemaining');
     if(el) el.textContent = String(p?.time_remaining ?? '-');
+    
+    // Gérer la musique de décompte
+    const timeRemaining = p?.time_remaining ?? 0;
+    if(timeRemaining > 0 && !musicPlaying) {
+      countdownMusic.play().catch(e => console.log('Impossible de jouer la musique:', e));
+      musicPlaying = true;
+    } else if(timeRemaining <= 0 && musicPlaying) {
+      countdownMusic.pause();
+      countdownMusic.currentTime = 0;
+      musicPlaying = false;
+    }
   });
 
   function render(state){
@@ -23,6 +40,13 @@
     document.getElementById('timeRemaining').textContent = String(state.time_remaining ?? '-');
     document.getElementById('qIndex').textContent = String((state.question_index ?? 0) + 1);
     document.getElementById('qTotal').textContent = String(state.question_total ?? '-');
+
+    // Arrêter la musique si on n'est pas en phase question
+    if(state.phase !== 'question' && musicPlaying) {
+      countdownMusic.pause();
+      countdownMusic.currentTime = 0;
+      musicPlaying = false;
+    }
 
     document.getElementById('category').textContent = state.question?.category ?? '';
     document.getElementById('prompt').textContent = state.question?.prompt ?? (state.phase === 'waiting' ? 'En attente…' : '');
