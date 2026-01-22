@@ -140,7 +140,7 @@ def build_question_bank() -> list[Question]:
             },
             correct="B",
         ),
-    ]
+        Question(
             category="DROIT/INFO",
             prompt="Selon le tableau, la durée associée au droit sui generis (base - contenu) est :",
             answers={"A": "70 ans", "B": "15 ans", "C": "5 ans", "D": "Illimitée"},
