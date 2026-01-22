@@ -53,9 +53,6 @@
 
   // Animation cinématique pour nouvelle question
   socket.on('new_question', () => {
-    if(window.triggerQuestionAnimation){
-      window.triggerQuestionAnimation();
-    }
     hasBet = false;
     currentBets = { A: 0, B: 0, C: 0, D: 0 };
     updateBetDisplay();
@@ -63,8 +60,8 @@
 
   // Animation résolution
   socket.on('reveal_answer', (data) => {
-    if(window.triggerResolutionAnimation){
-      window.triggerResolutionAnimation(data.correct);
+    if(window.MD_RESOLUTION){
+      window.MD_RESOLUTION.play({ correct: data.correct, bets: currentBets });
     }
   });
 
@@ -115,36 +112,37 @@
 
   function render(state){
     // Question
-    document.getElementById('qCounter').textContent = String((state.question_index || 0) + 1);
+    const qIndex = (state.question_index || 0) + 1;
+    document.getElementById('qCounter').textContent = String(qIndex);
     document.getElementById('category').textContent = state.question?.category ?? '';
-    document.getElementById('prompt').textContent = state.question?.prompt ?? (state.phase === 'waiting' ? 'En attente du démarrage...' : '');
+    document.getElementById('prompt').textContent = state.question?.prompt ?? '';
     document.getElementById('timerValue').textContent = String(state.time_remaining ?? 60);
 
-    // Réponses
-    const answersKeys = ['A','B','C','D'];
-    answersKeys.forEach(k => {
-      const textEl = document.getElementById('ans'+k);
-      const amountEl = document.getElementById('amount'+k);
-      if(state.question?.answers?.[k]){
-        textEl.textContent = state.question.answers[k];
-        textEl.parentElement.style.display = '';
-        if(amountEl) amountEl.textContent = currentBets[k] + ' €';
-      } else {
-        textEl.parentElement.style.display = 'none';
-      }
-    });
+    // Déclencher l'animation cinématique si nouvelle question en phase "question"
+    if(state.phase === 'question' && state.question?.prompt && window.MD_CINEMATIC){
+      window.MD_CINEMATIC.playOnce({
+        index: state.question_index,
+        prompt: state.question.prompt,
+        onAfterReveal: () => {
+          // Après l'animation, afficher les réponses
+          renderAnswers(state);
+          enableBetting();
+        }
+      });
+    } else {
+      renderAnswers(state);
+    }
 
     // Classement
     renderLeaderboard(state.players || []);
 
     // Messages selon la phase
     if(state.phase === 'waiting'){
-      setMsg('En attente du démarrage...', 'info');
+      setMsg('En attente du lancement de la question...', 'info');
       disableBetting();
     } else if(state.phase === 'question'){
       if(!hasBet){
         setMsg('Placez vos jetons et validez votre mise !', 'info');
-        enableBetting();
       }
     } else if(state.phase === 'results'){
       setMsg(state.correct ? `✓ Réponse correcte: ${state.correct}` : '✗ Résultats', 'info');
@@ -156,6 +154,24 @@
       setMsg('Partie terminée !', 'success');
       disableBetting();
     }
+  }
+
+  function renderAnswers(state){
+    // Réponses
+    const answersKeys = ['A','B','C','D'];
+    answersKeys.forEach(k => {
+      const textEl = document.getElementById('ans'+k);
+      const amountEl = document.getElementById('amount'+k);
+      const answerCard = textEl?.parentElement;
+      
+      if(state.question?.answers?.[k]){
+        textEl.textContent = state.question.answers[k];
+        if(answerCard) answerCard.style.display = '';
+        if(amountEl) amountEl.textContent = currentBets[k] + ' €';
+      } else {
+        if(answerCard) answerCard.style.display = 'none';
+      }
+    });
   }
 
   function renderLeaderboard(players){
