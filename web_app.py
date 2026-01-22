@@ -51,9 +51,11 @@ def create_app() -> Flask:
     class RTPlayer:
         sid: str
         name: str
-        score: int = 0
+        score: int = 1000  # jetons (chips)
         choice: Optional[str] = None
         is_correct: Optional[bool] = None
+        bets: Dict[str, int] = field(default_factory=lambda: {"A": 0, "B": 0, "C": 0, "D": 0})
+        socket_id: Optional[str] = None  # SocketIO session ID
 
     @dataclass
     class RealtimeLobby:
@@ -75,14 +77,16 @@ def create_app() -> Flask:
         correct: Optional[str] = None
         players: Dict[str, RTPlayer] = field(default_factory=dict)
 
-        def add_player(self, sid: str, name: str) -> None:
+        def add_player(self, sid: str, name: str, socket_sid: str = None) -> None:
             with self.lock:
                 if sid in self.players:
                     self.players[sid].name = name
+                    if socket_sid:
+                        self.players[sid].socket_id = socket_sid
                     return
                 if len(self.players) >= self.max_players:
                     raise ValueError("Lobby plein")
-                self.players[sid] = RTPlayer(sid=sid, name=name)
+                self.players[sid] = RTPlayer(sid=sid, name=name, score=1000, socket_id=socket_sid)
 
         def time_remaining(self) -> Optional[int]:
             if self.phase == "question" and self.question_started_at is not None:
@@ -113,9 +117,10 @@ def create_app() -> Flask:
                 self.question_started_at = None
                 self.paused_remaining = None
                 for p in self.players.values():
-                    p.score = 0
+                    p.score = 1000  # Reset jetons
                     p.choice = None
                     p.is_correct = None
+                    p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
                 # Le host déclenche explicitement le lancement de question
                 self.phase = "waiting"
 
@@ -130,6 +135,7 @@ def create_app() -> Flask:
                 for p in self.players.values():
                     p.choice = None
                     p.is_correct = None
+                    p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
                 self.phase = "question"
                 self.question_started_at = time.time()
                 self.paused_remaining = None
@@ -161,6 +167,20 @@ def create_app() -> Flask:
                     return
                 self.players[sid].choice = c
 
+        def place_bets(self, sid: str, bets: Dict[str, int]) -> None:
+            """Place les mises d'un joueur"""
+            with self.lock:
+                if self.phase != "question":
+                    return
+                if sid not in self.players:
+                    return
+                p = self.players[sid]
+                # Valider les mises
+                total_bet = sum(bets.get(k, 0) for k in ["A", "B", "C", "D"])
+                if total_bet > p.score:
+                    return  # Mise invalide
+                p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
+
         def validate(self) -> None:
             with self.lock:
                 if self.phase not in ("question", "paused"):
@@ -170,10 +190,17 @@ def create_app() -> Flask:
                     return
                 q = self.questions[self.question_index]
                 self.correct = q.correct
+                
+                # Calculer les gains/pertes pour chaque joueur
                 for p in self.players.values():
-                    p.is_correct = bool(p.choice) and (p.choice == self.correct)
-                    if p.is_correct:
-                        p.score += 1
+                    total_bet = sum(p.bets.values())
+                    unbet = p.score - total_bet
+                    correct_bet = p.bets.get(self.correct, 0)
+                    
+                    # Le joueur garde : sa mise correcte + jetons non misés
+                    p.score = correct_bet + unbet
+                    p.is_correct = correct_bet > 0
+                    
                 self.phase = "results"
 
         def next_question(self) -> None:
@@ -190,6 +217,7 @@ def create_app() -> Flask:
                 for p in self.players.values():
                     p.choice = None
                     p.is_correct = None
+                    p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
                 self.phase = "waiting"
 
         def snapshot(self) -> Dict[str, Any]:
@@ -208,6 +236,7 @@ def create_app() -> Flask:
                             "score": p.score,
                             "choice": p.choice,
                             "is_correct": p.is_correct if self.phase == "results" else None,
+                            "socket_id": p.socket_id,
                         }
                         for p in self.players.values()
                     ],
@@ -381,10 +410,16 @@ def create_app() -> Flask:
         lobby_id = (data.get("lobby_id") or "").strip()
         role = (data.get("role") or "player").strip()
         sid = session.get("sid")
+        socket_sid = request.sid  # SocketIO session ID
         lobby = rt_lobbies.get(lobby_id)
         if not sid or not lobby:
             emit("error_msg", {"error": "Lobby ou session invalide"})
             return
+        
+        # Mettre à jour le socket_id du joueur
+        if sid in lobby.players:
+            lobby.players[sid].socket_id = socket_sid
+            
         join_room(lobby_id)
         if role == "host" and not _is_host(lobby):
             emit("error_msg", {"error": "Host uniquement"})
@@ -402,6 +437,20 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Lobby ou session invalide"})
             return
         lobby.answer(sid, choice)
+        _emit_state(lobby)
+
+    @socketio.on("player_bets")
+    def _ws_player_bets(payload):
+        """Handler pour les mises des joueurs"""
+        data = payload or {}
+        lobby_id = (data.get("lobby_id") or "").strip()
+        bets = data.get("bets", {})
+        sid = session.get("sid")
+        lobby = rt_lobbies.get(lobby_id)
+        if not sid or not lobby:
+            emit("error_msg", {"error": "Lobby ou session invalide"})
+            return
+        lobby.place_bets(sid, bets)
         _emit_state(lobby)
 
     @socketio.on("host_start")
@@ -430,6 +479,8 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Host uniquement"})
             return
         lobby.launch_question()
+        # Émettre l'événement d'animation pour tous les clients
+        socketio.emit("new_question", {}, room=lobby_id)
         _emit_state(lobby)
 
     @socketio.on("host_pause")
@@ -472,6 +523,8 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Host uniquement"})
             return
         lobby.validate()
+        # Émettre l'événement de révélation de la réponse
+        socketio.emit("reveal_answer", {"correct": lobby.correct}, room=lobby_id)
         _emit_state(lobby)
 
     @socketio.on("host_next_question")
