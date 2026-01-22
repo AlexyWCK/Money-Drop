@@ -35,33 +35,42 @@
     // Focus stage
     document.body.classList.add('resolving');
 
-    const betKeys = ['A','B','C','D'].filter(k => Number(bets[k] || 0) > 0);
+    const keys = ['A','B','C','D'];
+    const betKeys = keys.filter(k => Number(bets[k] || 0) > 0);
 
-    for(const k of ['A','B','C','D']){
+    for(const k of keys){
       const ans = byKey('.md-answer', k);
       if(!ans) continue;
 
+      // Highlight les réponses misées
       if(betKeys.includes(k)) ans.classList.add('res-focus');
       else ans.classList.add('res-dim');
 
-      if(k === correct) ans.classList.add('res-win');
-      else if(betKeys.includes(k)) ans.classList.add('res-lose');
+      // Toutes les mauvaises réponses deviennent rouges, la bonne verte
+      if(k === correct) {
+        ans.classList.add('res-win');
+      } else {
+        ans.classList.add('res-lose');
+      }
     }
 
     // Small dramatic pause
     await new Promise(r => setTimeout(r, 750));
 
-    // Drop simultaneously for all wrong bet answers
-    for(const k of betKeys){
-      if(k === correct) continue;
+    // Animation de chute pour toutes les mauvaises réponses (pas seulement celles misées)
+    for(const k of keys){
+      if(k === correct) continue; // Ignorer la bonne réponse
+      
       const ans = byKey('.md-answer', k);
       const zone = byKey('.md-zone', k);
+      
+      // Ajouter l'animation de chute à toutes les mauvaises réponses
+      if(ans){
+        ans.classList.add('res-drop');
+      }
       if(zone){
         zone.classList.add('res-zone-lose');
         zone.classList.add('res-drop');
-      }
-      if(ans){
-        ans.classList.add('res-drop');
       }
     }
 

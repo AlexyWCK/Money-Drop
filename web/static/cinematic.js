@@ -4,7 +4,7 @@
   let lastPlayedIndex = null;
   let running = false;
 
-  const SUSPENSE_MS = 7000;
+  const SUSPENSE_MS = 4000; // 4 secondes pour l'animation de question
 
   function qs(sel){ return document.querySelector(sel); }
   function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }

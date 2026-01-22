@@ -36,9 +36,12 @@
     currentBets = { A: 0, B: 0, C: 0, D: 0 };
     updateBetDisplay();
     
-    // Déclencher immédiatement l'animation de question
+    // Déclencher l'animation de question (currentState devrait être à jour)
     if(currentState?.question?.prompt && window.MD_CINEMATIC){
       timerActive = false;
+      disableBetting();
+      setMsg('Question en cours...', 'info');
+      
       window.MD_CINEMATIC.playOnce({
         index: currentState.question_index,
         prompt: currentState.question.prompt,
@@ -95,7 +98,9 @@
     timerActive = false;
     if(questionIndex != null) lastResolvedQuestionIndex = questionIndex;
     try{
-      await window.MD_RESOLUTION.play({ correct, bets: currentBets });
+      // S'assurer que les mises sont définies même si le joueur n'a rien misé
+      const bets = currentBets || { A: 0, B: 0, C: 0, D: 0 };
+      await window.MD_RESOLUTION.play({ correct, bets });
     } finally {
       resolving = false;
     }

@@ -78,7 +78,7 @@ def create_app() -> Flask:
         players: Dict[str, RTPlayer] = field(default_factory=dict)
 
         # Durée de la cinématique côté client avant affichage du plateau (voir web/static/cinematic.js)
-        CINEMATIC_DELAY_SECONDS = 7.5
+        CINEMATIC_DELAY_SECONDS = 4.5  # 4s animation + 0.5s transition
 
         def add_player(self, sid: str, name: str, socket_sid: str = None) -> None:
             with self.lock:
@@ -496,10 +496,10 @@ def create_app() -> Flask:
         lobby.start_game(_shuffled_questions(lobby.question_total))
         lobby.launch_question()
         
-        # Émettre les événements pour déclencher l'animation côté client
+        # Émettre les événements dans le bon ordre : 1. game_started, 2. state, 3. new_question
         socketio.emit("game_started", {}, room=lobby_id)
+        _emit_state(lobby)  # Envoyer l'état AVANT l'animation
         socketio.emit("new_question", {}, room=lobby_id)
-        _emit_state(lobby)
 
     @socketio.on("host_launch_question")
     def _ws_host_launch(payload):
@@ -513,9 +513,9 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Host uniquement"})
             return
         lobby.launch_question()
-        # Émettre l'événement d'animation pour tous les clients
-        socketio.emit("new_question", {}, room=lobby_id)
+        # Émettre dans le bon ordre : état puis animation
         _emit_state(lobby)
+        socketio.emit("new_question", {}, room=lobby_id)
 
     @socketio.on("host_pause")
     def _ws_host_pause(payload):
@@ -576,8 +576,16 @@ def create_app() -> Flask:
         if not _is_host(lobby):
             emit("error_msg", {"error": "Host uniquement"})
             return
+        
         lobby.next_question()
-        _emit_state(lobby)
+        
+        # Si on a une nouvelle question, la lancer automatiquement avec animation
+        if lobby.phase != "finished":
+            lobby.launch_question()
+            _emit_state(lobby)
+            socketio.emit("new_question", {}, room=lobby_id)
+        else:
+            _emit_state(lobby)
 
     def _ticker() -> None:
         while True:
