@@ -40,6 +40,62 @@ function clearHighlights(){
   document.querySelectorAll('[data-key]').forEach(el => el.classList.remove('good','bad'));
 }
 
+function renderChipsVisual(zoneId, amount, lingotPlaced) {
+  const visual = $(zoneId);
+  if(!visual) return;
+  visual.innerHTML = '';
+  // Lingot séparé, affiché en haut de la pile si utilisé
+  if(lingotPlaced) {
+    const lingotImg = document.createElement('img');
+    lingotImg.src = '/static/lingot.png';
+    lingotImg.alt = 'Lingot';
+    lingotImg.className = 'chips-visual-img';
+    visual.appendChild(lingotImg);
+  }
+  // Billet 5000
+  let reste = amount;
+  while(reste >= 5000) {
+    const billet5000 = document.createElement('img');
+    billet5000.src = '/static/billet5000.jpg';
+    billet5000.alt = 'Billet 5000€';
+    billet5000.className = 'chips-visual-img';
+    visual.appendChild(billet5000);
+    reste -= 5000;
+  }
+  // Billet 1000
+  while(reste >= 1000) {
+    const billet = document.createElement('img');
+    billet.src = '/static/billet.jpg';
+    billet.alt = 'Billet 1000€';
+    billet.className = 'chips-visual-img';
+    visual.appendChild(billet);
+    reste -= 1000;
+  }
+  // Pièce 100
+  while(reste >= 100) {
+    const coin = document.createElement('img');
+    coin.src = '/static/coin.png';
+    coin.alt = 'Pièce 100€';
+    coin.className = 'chips-visual-img';
+    visual.appendChild(coin);
+    reste -= 100;
+  }
+}
+
+// Barre d'explication : alignement horizontal et espacement
+function renderMoneyDescBar() {
+  const bar = document.querySelector('.md-money-desc-bar');
+  if(!bar) return;
+  bar.innerHTML = `
+    <img src="/static/coin.png" alt="Pièce 100€" /> 100€
+    <img src="/static/billet.jpg" alt="Billet 1000€" /> 1000€
+    <img src="/static/billet5000.jpg" alt="Billet 5000€" /> 5000€
+    <img src="/static/lingot.png" alt="Lingot 10 000€" /> 10 000€
+  `;
+}
+
+document.addEventListener('DOMContentLoaded', renderMoneyDescBar);
+
 function updateVisuals(state){
   const b = getBets();
   const total = totalBet(b);
@@ -57,27 +113,15 @@ function updateVisuals(state){
   const totalChipsEl = $('totalChips');
   if(totalChipsEl) totalChipsEl.textContent = String(state?.player?.chips ?? 0);
 
-  // Update amounts under answer cards + zone labels + stacks visual
+  // Update images in each zone
   for(const k of ANSWER_KEYS){
     const amount = b[k] || 0;
+    const lingot = (window.lingotPlacedKey === k);
+    renderChipsVisual('chipsVisual'+k, amount, lingot);
     const amountEl = $('amount'+k);
     if(amountEl) amountEl.textContent = `${amount.toLocaleString('fr-FR')} €`;
-
     const zoneLabel = $('zoneLabel'+k);
     if(zoneLabel) zoneLabel.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : 'Glissez ici';
-
-    const visual = $('chipsVisual'+k);
-    if(visual){
-      const stacks = Math.min(Math.floor(amount / 1000), 10);
-      visual.innerHTML = '';
-      for(let i=0;i<stacks;i++){
-        const stack = document.createElement('div');
-        stack.className = 'chip-stack';
-        visual.appendChild(stack);
-      }
-    }
-
-    // Toggle minus button color
     const minusBtn = document.querySelector(`.md-circle-btn-minus[data-key="${k}"]`);
     if(minusBtn){
       if(amount > 0){
@@ -521,5 +565,67 @@ if(location.pathname === '/play'){
     setInterval(poll, 1000);
     poll();
   }
+}
+
+// --- Lingot unique, drag & drop et boutons sur chaque réponse ---
+let lingotUsed = false;
+let lingotPlacedKey = null;
+
+function disableLingot() {
+  document.querySelectorAll('.btn-lingot').forEach(btn => btn.disabled = true);
+  const lingot = document.getElementById('draggableLingot');
+  if(lingot) lingot.draggable = false;
+}
+
+function enableLingot() {
+  document.querySelectorAll('.btn-lingot').forEach(btn => btn.disabled = false);
+  const lingot = document.getElementById('draggableLingot');
+  if(lingot) lingot.draggable = true;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const lingot = document.getElementById('draggableLingot');
+  if(lingot){
+    lingot.addEventListener('dragstart', (e) => {
+      if(lingotUsed) { e.preventDefault(); return; }
+      e.dataTransfer.setData('text/plain', 'lingot');
+    });
+    for(const k of ANSWER_KEYS){
+      const zone = document.getElementById('chipsVisual'+k);
+      if(zone){
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+        });
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if(lingotUsed) return;
+          setBet(k, (parseInt(document.getElementById('bet'+k).value)||0) + 10000);
+          updateVisuals(window.lastState || {});
+          lingotUsed = true;
+          lingotPlacedKey = k;
+          disableLingot();
+        });
+      }
+    }
+  }
+  // Boutons lingot sur chaque réponse
+  for(const k of ANSWER_KEYS){
+    const btn = document.getElementById('btnLingot'+k);
+    if(btn){
+      btn.addEventListener('click', () => {
+        if(lingotUsed) return;
+        setBet(k, (parseInt(document.getElementById('bet'+k).value)||0) + 10000);
+        updateVisuals(window.lastState || {});
+        lingotUsed = true;
+        lingotPlacedKey = k;
+        disableLingot();
+      });
+    }
+  }
+});
+
+// Affichage dynamique des jetons restants
+function updateJetonsRestantsDisplay(state){
+  // ... à compléter selon la logique backend pour afficher les quantités restantes de chaque type
 }
 

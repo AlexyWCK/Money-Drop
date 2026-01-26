@@ -955,3 +955,43 @@ input:focus{border-color:rgba(33, 150, 243, 0.6);box-shadow:0 0 0 3px rgba(33, 1
   font-size:14px;
   font-weight:600;
 }
+
+/* Jetons, billets, lingot : images agrandies */
+.md-money-icon-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.md-money-icon-lg {
+  width: 64px;
+  height: 64px;
+}
+
+/* Barre d'explication des valeurs des jetons */
+.md-money-desc-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 8px;
+  margin-left: 12px;
+  font-size: 1.08rem;
+  color: #fff;
+}
+.md-money-desc-bar img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+/* Images dans chipsVisualX : taille réduite et alignement horizontal */
+.chips-visual-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  margin-right: 2px;
+  vertical-align: middle;
+}

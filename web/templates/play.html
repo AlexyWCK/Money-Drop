@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Money Drop - Partie</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='cinematic.css') }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename='resolution.css') }}" />
@@ -42,18 +43,39 @@
     </header>
 
     <main class="md-layout">
+            <div class="md-money-desc-bar">
+              <img src="{{ url_for('static', filename='coin.png') }}" alt="Pièce 100€" /> 100€
+              <img src="{{ url_for('static', filename='billet.jpg') }}" alt="Billet 1000€" /> 1000€
+              <img src="{{ url_for('static', filename='billet5000.jpg') }}" alt="Billet 5000€" /> 5000€
+              <img src="{{ url_for('static', filename='lingot.png') }}" alt="Lingot 10 000€" /> 10 000€
+            </div>
       <section class="md-main">
+        <!-- Barre visuelle des jetons restants à placer -->
+        <div class="md-money-breakdown">
+          <div class="md-money-item"><img src="{{ url_for('static', filename='lingot.png') }}" alt="Lingot" class="md-money-icon-img md-money-icon-lg" /> <span id="moneyLingot">—</span></div>
+          <div class="md-money-item"><img src="{{ url_for('static', filename='billet.jpg') }}" alt="Billet 1000€" class="md-money-icon-img md-money-icon-lg" /> <span id="moneyBillets">—</span></div>
+          <div class="md-money-item"><img src="{{ url_for('static', filename='billet5000.jpg') }}" alt="Billet 5000€" class="md-money-icon-img md-money-icon-lg" /> <span id="moneyBillets5000">—</span></div>
+          <div class="md-money-item"><img src="{{ url_for('static', filename='coin.png') }}" alt="Pièce" class="md-money-icon-img md-money-icon-lg" /> <span id="moneyPieces">—</span></div>
+        </div>
+
+        <!-- Lingot draggable au centre -->
+        <div id="lingotCenter" class="md-lingot-center">
+          <img src="{{ url_for('static', filename='lingot.png') }}" alt="Lingot" id="draggableLingot" draggable="true" class="md-lingot-img" />
+        </div>
+
+        <!-- Bouton doré pour placer le lingot sur A -->
+        <button id="btnLingotA" class="md-btn md-btn-gold" type="button" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;">Placer le lingot sur A</button>
+
+        <!-- Question et réponses -->
         <div class="md-question">
           <div class="md-qbadge">
             <div class="md-qbadge-top">Question</div>
             <div class="md-qbadge-num" id="qCounter">1</div>
           </div>
-
           <div class="md-qtext">
             <div id="category" class="md-qcategory">Catégorie</div>
             <div id="prompt" class="md-qprompt">Chargement...</div>
           </div>
-
           <div class="md-timer" aria-label="Chrono">
             <svg class="md-timer-svg" viewBox="0 0 100 100" role="img">
               <circle class="md-timer-bg" cx="50" cy="50" r="45" />
@@ -94,36 +116,37 @@
               <div class="md-zone-controls">
                 <button class="md-circle-btn md-circle-btn-minus" type="button" data-action="minus" data-key="A" aria-label="Retirer">−</button>
                 <button class="md-circle-btn md-circle-btn-plus" type="button" data-action="plus" data-key="A" aria-label="Ajouter">+</button>
+                <button id="btnLingotA" class="md-btn md-btn-gold btn-lingot" type="button">Lingot sur A</button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualA" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelA">Glissez ici</div>
               <input id="betA" class="md-hidden" type="number" min="0" step="100" value="0" />
             </div>
-
             <div class="md-zone" data-key="B">
               <div class="md-zone-controls">
                 <button class="md-circle-btn md-circle-btn-minus" type="button" data-action="minus" data-key="B" aria-label="Retirer">−</button>
                 <button class="md-circle-btn md-circle-btn-plus" type="button" data-action="plus" data-key="B" aria-label="Ajouter">+</button>
+                <button id="btnLingotB" class="md-btn md-btn-gold btn-lingot" type="button">Lingot sur B</button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualB" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelB">Glissez ici</div>
               <input id="betB" class="md-hidden" type="number" min="0" step="100" value="0" />
             </div>
-
             <div class="md-zone" data-key="C">
               <div class="md-zone-controls">
                 <button class="md-circle-btn md-circle-btn-minus" type="button" data-action="minus" data-key="C" aria-label="Retirer">−</button>
                 <button class="md-circle-btn md-circle-btn-plus" type="button" data-action="plus" data-key="C" aria-label="Ajouter">+</button>
+                <button id="btnLingotC" class="md-btn md-btn-gold btn-lingot" type="button">Lingot sur C</button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualC" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelC">Glissez ici</div>
               <input id="betC" class="md-hidden" type="number" min="0" step="100" value="0" />
             </div>
-
             <div class="md-zone" data-key="D">
               <div class="md-zone-controls">
                 <button class="md-circle-btn md-circle-btn-minus" type="button" data-action="minus" data-key="D" aria-label="Retirer">−</button>
                 <button class="md-circle-btn md-circle-btn-plus" type="button" data-action="plus" data-key="D" aria-label="Ajouter">+</button>
+                <button id="btnLingotD" class="md-btn md-btn-gold btn-lingot" type="button">Lingot sur D</button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualD" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelD">Glissez ici</div>
@@ -131,7 +154,7 @@
             </div>
           </div>
 
-          <!-- Remaining tokens bar -->
+          <!-- Barre visuelle des jetons restants à placer -->
           <div class="md-money">
             <div class="md-money-title">Jetons restants à placer</div>
             <div id="moneyStacks" class="md-money-stacks" aria-hidden="true"></div>
@@ -150,16 +173,13 @@
               <div class="md-metric-value md-accent" id="totalBet">0</div>
               <div class="md-metric-unit">€</div>
             </div>
-
             <button id="submit" class="md-btn md-btn-primary" type="button">Valider la mise</button>
-
             <div class="md-metric">
               <div class="md-metric-label">Non misé</div>
               <div class="md-metric-value md-gold" id="unbetValue">0</div>
               <div class="md-metric-unit">€</div>
             </div>
           </div>
-
           <div id="message" class="md-message" role="status" aria-live="polite"></div>
         </div>
       </section>
