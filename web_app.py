@@ -365,6 +365,8 @@ def create_app() -> Flask:
             return render_template("menu.html", host_error="MTP incorrect", host_name=name, host_size=size, host_time_limit=time_limit)
 
         lobby = rt_lobbies.create(host_sid=sid, host_name=name, max_players=size, time_limit=time_limit)
+        # Stocker le nom de l'hôte en session
+        session[f"player_name_{lobby.lobby_id}"] = name
         return redirect(url_for("lobby_host", lobby_id=lobby.lobby_id))
 
     @app.post("/lobby/join")
@@ -383,14 +385,13 @@ def create_app() -> Flask:
             if request.is_json:
                 return jsonify({"ok": False, "error": "unknown-lobby"}), 404
             return redirect(url_for("menu", error="unknown-lobby"))
-        try:
-            lobby.add_player(sid, name)
-            # Notifier tous les clients du lobby que l'état a changé
-            socketio.emit("state", lobby.snapshot(), room=lobby_id)
-        except ValueError as e:
-            if request.is_json:
-                return jsonify({"ok": False, "error": str(e)}), 400
-            return redirect(url_for("menu", error=str(e)))
+        
+        # Stocker le nom en session pour le passer au template
+        session[f"player_name_{lobby_id}"] = name
+        
+        # NE PAS ajouter le joueur ici - il sera ajouté via websocket
+        # pour éviter la duplication
+        
         if request.is_json:
             return jsonify({"ok": True, "lobby_id": lobby_id})
         return redirect(url_for("lobby_client", lobby_id=lobby_id))
@@ -403,7 +404,9 @@ def create_app() -> Flask:
             return redirect(url_for("menu", error="unknown-lobby"))
         if session.get("sid") != lobby.host_sid:
             return redirect(url_for("lobby_client", lobby_id=lobby_id))
-        return render_template("host_dashboard.html", lobby_id=lobby_id)
+        # Récupérer le nom de l'hôte depuis la session
+        player_name = session.get(f"player_name_{lobby_id}", lobby.host_name)
+        return render_template("host_dashboard.html", lobby_id=lobby_id, player_name=player_name)
 
     @app.get("/lobby/<lobby_id>/client")
     def lobby_client(lobby_id: str):
@@ -411,7 +414,9 @@ def create_app() -> Flask:
         lobby = rt_lobbies.get(lobby_id)
         if not lobby:
             return redirect(url_for("menu", error="unknown-lobby"))
-        return render_template("lobby_client.html", lobby_id=lobby_id)
+        # Récupérer le nom du joueur depuis la session
+        player_name = session.get(f"player_name_{lobby_id}", "Joueur")
+        return render_template("lobby_client.html", lobby_id=lobby_id, player_name=player_name)
 
     # Socket.IO events
     def _emit_state(lobby: RealtimeLobby) -> None:

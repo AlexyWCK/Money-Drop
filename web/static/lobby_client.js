@@ -182,8 +182,15 @@
       disableBetting();
       timerActive = false;
     } else if(state.phase === 'question'){
-      // Le message sera géré par l'animation new_question
-      timerActive = (state.question && !resolving);
+      // Afficher message pour joueurs éliminés
+      if(myChips <= 0){
+        setMsg('❌ Vous êtes éliminé ! Il ne vous reste plus d\'argent.', 'error');
+        disableBetting();
+        timerActive = false;
+      } else {
+        // Le message sera géré par l'animation new_question
+        timerActive = (state.question && !resolving);
+      }
     } else if(state.phase === 'results'){
       setMsg(state.correct ? `✓ Réponse correcte: ${state.correct}` : '✗ Résultats', 'info');
       disableBetting();
@@ -253,10 +260,20 @@
       
       const name = document.createElement('div');
       name.className = 'md-lb-name';
-      name.textContent = p.name;
+      // Afficher en rouge si éliminé
+      if(p.score <= 0){
+        name.style.color = '#e53935';
+        name.textContent = p.name + ' (Éliminé)';
+      } else {
+        name.textContent = p.name;
+      }
       
       const score = document.createElement('div');
       score.className = 'md-lb-score';
+      // Afficher en rouge si éliminé
+      if(p.score <= 0){
+        score.style.color = '#e53935';
+      }
       score.textContent = p.score + ' €';
       
       row.appendChild(badge);
@@ -324,6 +341,11 @@
   // Boutons +/-
   document.querySelectorAll('.md-circle-btn').forEach(btn => {
     btn.onclick = () => {
+      // Bloquer si le joueur est éliminé
+      if(myChips <= 0){
+        setMsg('❌ Vous êtes éliminé ! Vous n\'avez plus de jetons.', 'error');
+        return;
+      }
       if(hasBet || !currentState || currentState.phase !== 'question') return;
       
       const key = btn.dataset.key;
@@ -347,6 +369,11 @@
 
   // Bouton valider
   document.getElementById('submit').onclick = () => {
+    // Bloquer si le joueur est éliminé
+    if(myChips <= 0){
+      setMsg('❌ Vous êtes éliminé ! Vous n\'avez plus de jetons.', 'error');
+      return;
+    }
     if(hasBet || !currentState || currentState.phase !== 'question') return;
     
     const totalBet = Object.values(currentBets).reduce((a,b) => a+b, 0);

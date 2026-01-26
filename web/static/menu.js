@@ -16,11 +16,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const menuHost = document.getElementById('menu-host');
   const menuJoin = document.getElementById('menu-join');
 
-  // Main menu buttons
-  document.getElementById('btnSolo').onclick = function () {
-    menuMain.style.display = 'none';
-    document.getElementById('menu-solo').style.display = '';
-  };
     // Solo form back
     document.getElementById('btnBackSolo').onclick = function () {
       document.getElementById('menu-solo').style.display = 'none';

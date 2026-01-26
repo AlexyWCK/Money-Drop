@@ -1,5 +1,6 @@
 (function(){
   const lobbyId = window.LOBBY_ID;
+  const playerName = window.PLAYER_NAME || 'Host';
   const msgEl = document.getElementById('hostMsg');
 
   function setMsg(t){ msgEl.textContent = t || ''; }
@@ -14,7 +15,7 @@
   const socket = io(window.location.origin, { transports: ['websocket','polling'] });
 
   socket.on('connect', () => {
-    socket.emit('join_lobby', { lobby_id: lobbyId, role: 'host' });
+    socket.emit('join_lobby', { lobby_id: lobbyId, role: 'host', player_name: playerName });
   });
 
   socket.on('error_msg', (p) => setMsg(p?.error || 'Erreur'));
