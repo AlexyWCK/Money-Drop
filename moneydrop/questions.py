@@ -130,6 +130,7 @@ def build_question_bank() -> list[Question]:
             },
             correct="D",
         ),
+        # --- QUESTIONS SUPPLEMENTAIRES DE L'EXEMPLE ---
         # Variante à 2 choix pour la dernière question (exemple)
         Question(
             category="DROIT/INFO",
@@ -234,7 +235,12 @@ def build_question_bank() -> list[Question]:
         Question(
             category="DROIT/INFO",
             prompt="Quel est l'ordre de grandeur maximal des sanctions RGPD cité dans le cours ?",
-            answers={"A": "2 M€ / 1% CA", "B": "5 M€ / 2% CA", "C": "20 M€ / 4% CA", "D": "200 M€ / 10% CA"},
+            answers={
+                "A": "2 M€ / 1% CA",
+                "B": "5 M€ / 2% CA",
+                "C": "20 M€ / 4% CA",
+                "D": "200 M€ / 10% CA",
+            },
             correct="C",
             explanation="Sanctions : jusqu'à 20 M€ ou 4% du CA annuel mondial.",
         ),
