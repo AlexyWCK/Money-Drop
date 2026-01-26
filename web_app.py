@@ -485,15 +485,8 @@ def create_app() -> Flask:
             return
         lobby.place_bets(sid, bets)
         
-        # Vérifier si tous les joueurs ont misé pour terminer automatiquement le tour
-        if lobby.all_players_bet():
-            lobby.validate()
-            # Émettre l'événement de révélation de la réponse
-            socketio.emit(
-                "reveal_answer",
-                {"correct": lobby.correct, "question_index": lobby.question_index},
-                room=lobby_id,
-            )
+        # Ne plus valider automatiquement : seul l'hôte peut révéler les réponses
+        # en cliquant sur le bouton "Révéler les réponses"
         
         _emit_state(lobby)
 
