@@ -1,6 +1,7 @@
 (function(){
   const lobbyId = window.LOBBY_ID;
   const msgEl = document.getElementById('message');
+  const playerName = window.PLAYER_NAME || 'Joueur';
   
   let currentState = null;
   let myPlayerName = '';
@@ -16,7 +17,12 @@
   const socket = io(window.location.origin, { transports: ['websocket','polling'] });
 
   socket.on('connect', () => {
-    socket.emit('join_lobby', { lobby_id: lobbyId, role: 'player' });
+    // Rejoindre le lobby avec le nom du joueur
+    socket.emit('join_lobby', { 
+      lobby_id: lobbyId, 
+      role: 'player',
+      player_name: playerName
+    });
   });
 
   socket.on('error_msg', (p) => setMsg(p?.error || 'Erreur', 'error'));
@@ -230,10 +236,20 @@
       
       const badge = document.createElement('div');
       badge.className = 'md-lb-rank';
-      if(rank === 1) badge.classList.add('md-lb-rank-gold');
-      else if(rank === 2) badge.classList.add('md-lb-rank-silver');
-      else if(rank === 3) badge.classList.add('md-lb-rank-bronze');
-      badge.textContent = rank;
+      let badgeText = rank;
+      if(rank === 1) {
+        badge.classList.add('md-lb-rank-gold');
+        badgeText = '🥇';
+      }
+      else if(rank === 2) {
+        badge.classList.add('md-lb-rank-silver');
+        badgeText = '🥈';
+      }
+      else if(rank === 3) {
+        badge.classList.add('md-lb-rank-bronze');
+        badgeText = '🥉';
+      }
+      badge.textContent = badgeText;
       
       const name = document.createElement('div');
       name.className = 'md-lb-name';
@@ -241,7 +257,7 @@
       
       const score = document.createElement('div');
       score.className = 'md-lb-score';
-      score.innerHTML = `<strong>${p.score}</strong><br/>jetons`;
+      score.textContent = p.score + ' €';
       
       row.appendChild(badge);
       row.appendChild(name);

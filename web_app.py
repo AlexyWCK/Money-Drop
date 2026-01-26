@@ -425,29 +425,46 @@ def create_app() -> Flask:
         data = payload or {}
         lobby_id = (data.get("lobby_id") or "").strip()
         role = (data.get("role") or "player").strip()
-        sid = session.get("sid")
-        socket_sid = request.sid  # SocketIO session ID
+        player_name = (data.get("player_name") or "Joueur").strip()[:24]
+        socket_sid = request.sid  # SocketIO session ID unique
+        
         lobby = rt_lobbies.get(lobby_id)
-        if not sid or not lobby:
-            emit("error_msg", {"error": "Lobby ou session invalide"})
+        if not lobby:
+            emit("error_msg", {"error": "Lobby invalide"})
             return
         
-        # Mettre à jour le socket_id du joueur
-        if sid in lobby.players:
-            lobby.players[sid].socket_id = socket_sid
+        # Pour les joueurs : créer un SID unique basé sur le socket SocketIO
+        # Pour l'host : utiliser le SID de session Flask
+        if role == "player":
+            # Utiliser le socket_sid comme identifiant unique pour chaque client/onglet
+            sid = socket_sid
+            try:
+                lobby.add_player(sid, player_name, socket_sid)
+            except ValueError as e:
+                emit("error_msg", {"error": str(e)})
+                return
+        else:
+            # Host
+            sid = session.get("sid")
+            if not sid or sid != lobby.host_sid:
+                emit("error_msg", {"error": "Host uniquement"})
+                return
+            # Mettre à jour le socket_id du host
+            if sid in lobby.players:
+                lobby.players[sid].socket_id = socket_sid
             
         join_room(lobby_id)
-        if role == "host" and not _is_host(lobby):
-            emit("error_msg", {"error": "Host uniquement"})
         # Envoyer l'état actuel du lobby au client
         emit("state", lobby.snapshot())
+        # Notifier tous les autres clients du lobby
+        socketio.emit("state", lobby.snapshot(), room=lobby_id, skip_sid=request.sid)
 
     @socketio.on("player_answer")
     def _ws_player_answer(payload):
         data = payload or {}
         lobby_id = (data.get("lobby_id") or "").strip()
         choice = data.get("choice")
-        sid = session.get("sid")
+        sid = request.sid  # Utiliser socket_sid
         lobby = rt_lobbies.get(lobby_id)
         if not sid or not lobby:
             emit("error_msg", {"error": "Lobby ou session invalide"})
@@ -461,7 +478,7 @@ def create_app() -> Flask:
         data = payload or {}
         lobby_id = (data.get("lobby_id") or "").strip()
         bets = data.get("bets", {})
-        sid = session.get("sid")
+        sid = request.sid  # Utiliser socket_sid
         lobby = rt_lobbies.get(lobby_id)
         if not sid or not lobby:
             emit("error_msg", {"error": "Lobby ou session invalide"})
@@ -564,6 +581,28 @@ def create_app() -> Flask:
             room=lobby_id,
         )
         _emit_state(lobby)
+
+    @socketio.on("host_reveal_answer")
+    def _ws_host_reveal(payload):
+        """Révéler la réponse (alias pour host_force_validate)"""
+        data = payload or {}
+        lobby_id = (data.get("lobby_id") or "").strip()
+        lobby = rt_lobbies.get(lobby_id)
+        if not lobby:
+            emit("error_msg", {"error": "unknown-lobby"})
+            return
+        if not _is_host(lobby):
+            emit("error_msg", {"error": "Host uniquement"})
+            return
+        # Si le jeu est toujours en cours, valider et révéler
+        if lobby.phase == "question":
+            lobby.validate()
+            socketio.emit(
+                "reveal_answer",
+                {"correct": lobby.correct, "question_index": lobby.question_index},
+                room=lobby_id,
+            )
+            _emit_state(lobby)
 
     @socketio.on("host_next_question")
     def _ws_host_next(payload):

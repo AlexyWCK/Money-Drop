@@ -92,3 +92,62 @@
 
 .lobby-player .name{ font-weight: 850; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .lobby-player .meta{ color: rgba(255,255,255,.70); font-size: 12px; }
+
+/* Leaderboard styles */
+.lobby-leaderboard{ display:flex; flex-direction:column; gap:10px; }
+
+.lobby-lb-item{
+  display:grid;
+  grid-template-columns: 40px 1fr 100px;
+  gap:12px;
+  align-items:center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(37,99,235,.26);
+  background: rgba(13,27,60,.55);
+  transition: all 400ms cubic-bezier(.2,.9,.2,1);
+  animation: lb-entry 600ms cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+@keyframes lb-entry{
+  0%{
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100%{
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.lobby-lb-item:nth-child(2){ animation-delay: 80ms; }
+.lobby-lb-item:nth-child(3){ animation-delay: 160ms; }
+.lobby-lb-item:nth-child(4){ animation-delay: 240ms; }
+.lobby-lb-item:nth-child(5){ animation-delay: 320ms; }
+
+.lobby-lb-item:hover{
+  background: rgba(13,27,60,.75);
+  border-color: rgba(37,99,235,.42);
+  transform: translateX(2px);
+}
+
+.lb-rank{
+  font-size: 20px;
+  text-align: center;
+  font-weight: 900;
+}
+
+.lb-name{
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255,255,255,.92);
+}
+
+.lb-score{
+  font-weight: 950;
+  text-align: right;
+  font-size: 16px;
+  color: rgba(255,215,0,.95);
+}

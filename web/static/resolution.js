@@ -19,6 +19,7 @@
 
   function cleanup(){
     document.body.classList.remove('resolving');
+    document.body.classList.remove('drone-view');
     qa('.md-answer').forEach(el => el.classList.remove('res-dim','res-focus','res-win','res-lose','res-drop'));
     qa('.md-zone').forEach(el => el.classList.remove('res-zone-lose','res-drop'));
     setControlsDisabled(false);
@@ -32,8 +33,9 @@
 
     setControlsDisabled(true);
 
-    // Focus stage
+    // Drone view 3D perspective
     document.body.classList.add('resolving');
+    document.body.classList.add('drone-view');
 
     const keys = ['A','B','C','D'];
     const betKeys = keys.filter(k => Number(bets[k] || 0) > 0);
@@ -46,7 +48,7 @@
       if(betKeys.includes(k)) ans.classList.add('res-focus');
       else ans.classList.add('res-dim');
 
-      // Toutes les mauvaises réponses deviennent rouges, la bonne verte
+      // La bonne réponse verte, les mauvaises rouges
       if(k === correct) {
         ans.classList.add('res-win');
       } else {
@@ -54,17 +56,16 @@
       }
     }
 
-    // Small dramatic pause
-    await new Promise(r => setTimeout(r, 750));
+    // Dramatic pause for 3D perspective
+    await new Promise(r => setTimeout(r, 900));
 
-    // Animation de chute pour toutes les mauvaises réponses (pas seulement celles misées)
+    // Tables drop for wrong answers
     for(const k of keys){
-      if(k === correct) continue; // Ignorer la bonne réponse
+      if(k === correct) continue;
       
       const ans = byKey('.md-answer', k);
       const zone = byKey('.md-zone', k);
       
-      // Ajouter l'animation de chute à toutes les mauvaises réponses
       if(ans){
         ans.classList.add('res-drop');
       }
@@ -74,11 +75,12 @@
       }
     }
 
-    // Let animation play longer
-    await new Promise(r => setTimeout(r, 1800));
+    // Correct answer gets shine
+    const winAns = byKey('.md-answer', correct);
+    if(winAns) winAns.classList.add('res-drop');
 
-    // Keep winner visible a bit
-    await new Promise(r => setTimeout(r, 650));
+    // Animation complète + winner visible
+    await new Promise(r => setTimeout(r, 1300));
 
     cleanup();
   }

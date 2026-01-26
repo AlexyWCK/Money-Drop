@@ -204,6 +204,33 @@
   <script>
     window.LOBBY_ID = "{{ lobby_id }}";
     window.ROLE = "player";
+    
+    // Gestion des sessions multiples (pour tester avec plusieurs onglets)
+    // Chaque onglet aura sa propre session
+    (function(){
+      const lobbyId = window.LOBBY_ID;
+      const playerNameKey = `moneydrop_player_${lobbyId}`;
+      
+      // Vérifier si c'est la première visite ou non
+      const storedName = localStorage.getItem(playerNameKey);
+      
+      if(!storedName){
+        // Demander le nom du joueur
+        const playerNum = Math.floor(Math.random() * 1000);
+        const suggestedName = `Joueur${playerNum}`;
+        const playerName = prompt(`Entrez votre nom (ou appuyez sur OK pour: ${suggestedName}):`, suggestedName);
+        
+        if(playerName){
+          localStorage.setItem(playerNameKey, playerName);
+          window.PLAYER_NAME = playerName;
+        } else {
+          window.PLAYER_NAME = suggestedName;
+          localStorage.setItem(playerNameKey, suggestedName);
+        }
+      } else {
+        window.PLAYER_NAME = storedName;
+      }
+    })();
   </script>
   <script src="{{ url_for('static', filename='lobby_client.js') }}"></script>
   <script src="{{ url_for('static', filename='cinematic.js') }}"></script>

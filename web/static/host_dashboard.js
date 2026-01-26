@@ -62,6 +62,31 @@
       answers.appendChild(el);
     }
 
+    // Classement trié par score
+    const leaderboard = document.getElementById('leaderboard');
+    if(leaderboard){
+      leaderboard.innerHTML = '';
+      const sorted = [...(state.players || [])].sort((a,b) => b.score - a.score);
+      sorted.forEach((p, idx) => {
+        const rank = idx + 1;
+        const row = document.createElement('div');
+        row.className = 'lobby-lb-item';
+        
+        let medal = '';
+        if(rank === 1) medal = '🥇';
+        else if(rank === 2) medal = '🥈';
+        else if(rank === 3) medal = '🥉';
+        else medal = `#${rank}`;
+        
+        row.innerHTML = `
+          <div class="lb-rank">${medal}</div>
+          <div class="lb-name">${escapeHtml(p.name)}</div>
+          <div class="lb-score">${p.score} €</div>
+        `;
+        leaderboard.appendChild(row);
+      });
+    }
+
     const players = document.getElementById('players');
     players.innerHTML = '';
     for(const p of (state.players || [])){
@@ -94,5 +119,6 @@
   document.getElementById('btnPause').onclick = () => socket.emit('host_pause', { lobby_id: lobbyId });
   document.getElementById('btnResume').onclick = () => socket.emit('host_resume', { lobby_id: lobbyId });
   document.getElementById('btnForce').onclick = () => socket.emit('host_force_validate', { lobby_id: lobbyId });
+  document.getElementById('btnReveal').onclick = () => socket.emit('host_reveal_answer', { lobby_id: lobbyId });
   document.getElementById('btnNext').onclick = () => socket.emit('host_next_question', { lobby_id: lobbyId });
 })();
