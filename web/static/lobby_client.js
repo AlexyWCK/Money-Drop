@@ -69,9 +69,15 @@
     const me = state.players?.find(p => p.socket_id === socket.id);
     if(me){
       myPlayerName = me.name;
-      myChips = me.score || 1000;
+      myChips = me.score || 0;
       document.getElementById('playerName').textContent = myPlayerName;
       document.getElementById('chips').textContent = myChips;
+    }
+    
+    // Vérifier si le joueur est éliminé
+    if(gameStarted && myChips <= 0){
+      showGameOver();
+      return;
     }
     
     // Gérer la transition entre lobby et jeu
@@ -158,8 +164,18 @@
 
   function showGameBoard(){
     document.getElementById('lobbyWaiting').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'none';
     document.getElementById('gameBoard').style.display = 'flex';
     document.getElementById('chipsDisplay').style.display = '';
+  }
+
+  function showGameOver(){
+    document.getElementById('lobbyWaiting').style.display = 'none';
+    document.getElementById('gameBoard').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'flex';
+    document.getElementById('finalScore').textContent = myChips + ' €';
+    timerActive = false;
+    disableBetting();
   }
 
   function render(state){
@@ -316,11 +332,11 @@
       }
     });
     
-    const unbet = myChips - totalBet;
+    const unbet = myChips > 0 ? myChips - totalBet : 0;
     document.getElementById('totalBet').textContent = totalBet;
     document.getElementById('unbetValue').textContent = unbet;
     document.getElementById('unbet').textContent = unbet;
-    document.getElementById('totalChips').textContent = myChips;
+    document.getElementById('totalChips').textContent = myChips > 0 ? myChips : 0;
     
     const percent = myChips > 0 ? (unbet / myChips) * 100 : 0;
     document.getElementById('remainingBar').style.width = percent + '%';
@@ -329,11 +345,13 @@
     const moneyStacks = document.getElementById('moneyStacks');
     if(moneyStacks){
       moneyStacks.innerHTML = '';
-      const numChips = Math.min(Math.floor(unbet / 100), 10);
-      for(let i = 0; i < numChips; i++){
-        const chip = document.createElement('div');
-        chip.className = 'md-chip';
-        moneyStacks.appendChild(chip);
+      if(myChips > 0){
+        const numChips = Math.min(Math.floor(unbet / 100), 10);
+        for(let i = 0; i < numChips; i++){
+          const chip = document.createElement('div');
+          chip.className = 'md-chip';
+          moneyStacks.appendChild(chip);
+        }
       }
     }
   }
@@ -379,6 +397,12 @@
     const totalBet = Object.values(currentBets).reduce((a,b) => a+b, 0);
     if(totalBet === 0){
       setMsg('⚠ Vous devez placer au moins un jeton !', 'error');
+      return;
+    }
+    
+    // IMPORTANT : Vérifier que TOUS les jetons sont misés
+    if(totalBet < myChips){
+      setMsg('⚠ Vous devez miser TOUS vos jetons ! Les jetons non misés seront perdus !', 'error');
       return;
     }
     

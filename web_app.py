@@ -212,8 +212,8 @@ def create_app() -> Flask:
                     unbet = p.score - total_bet
                     correct_bet = p.bets.get(self.correct, 0)
                     
-                    # Le joueur garde : sa mise correcte + jetons non misés
-                    p.score = correct_bet + unbet
+                    # Le joueur garde UNIQUEMENT sa mise correcte (les jetons non misés sont perdus)
+                    p.score = correct_bet
                     p.is_correct = correct_bet > 0
                     
                 self.phase = "results"

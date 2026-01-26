@@ -65,6 +65,27 @@
       </div>
     </div>
 
+    <!-- Écran Game Over -->
+    <div id="gameOver" class="md-game-over" style="display:none;">
+      <div class="md-game-over-container">
+        <div class="md-game-over-icon"><img src="{{ url_for('static', filename='perdu.jpg') }}" alt="Perdu"></div>
+        <h1 class="md-game-over-title">GAME OVER</h1>
+        <p class="md-game-over-subtitle">Vous avez été éliminé !</p>
+        <div class="md-game-over-message">
+          <p>Vous n'avez plus de jetons. La partie continue pour les autres joueurs.</p>
+        </div>
+        <div class="md-game-over-stats">
+          <div class="md-game-over-stat">
+            <div class="md-game-over-stat-label">Votre score final</div>
+            <div class="md-game-over-stat-value" id="finalScore">0 €</div>
+          </div>
+        </div>
+        <div class="md-game-over-actions">
+          <a href="/menu" class="md-btn md-btn-primary">Retour au menu</a>
+        </div>
+      </div>
+    </div>
+
     <!-- Plateau de jeu (caché au début) -->
     <main id="gameBoard" class="md-layout" style="display:none;">
       <section class="md-main">
