@@ -47,7 +47,7 @@
           <div id="hostPwdError" style="display:none; color:#e53935; font-size:13px; margin-top:4px; margin-bottom:8px;"></div>
           {% endif %}
           <label>Nombre de joueurs</label>
-          <input name="size" type="number" min="2" max="8" value="{{ host_size|default('2') }}" />
+          <input name="size" type="number" min="2" max="50" value="{{ host_size|default('2') }}" />
           <label>Temps / question (sec)</label>
           <input name="time_limit" type="number" min="5" max="120" value="{{ host_time_limit|default('30') }}" />
           <button class="md-menu-btn md-menu-sub" type="submit">Créer et lancer</button>
