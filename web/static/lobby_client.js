@@ -6,13 +6,16 @@
   let currentState = null;
   let myPlayerName = '';
   let myChips = 10000;
+  let myLingots = 1;
+  let currentLingotBet = null; // 'A', 'B', 'C', 'D' ou null
+  
   let currentBets = { A: 0, B: 0, C: 0, D: 0 };
   let hasBet = false;
   let gameStarted = false;
   let timerActive = false;
   let resolving = false;
   let lastResolvedQuestionIndex = null;
-  let hasShownGameOver = false; // Pour tracker si on a déjà montré le Game Over
+  let hasShownGameOver = false;
 
   // Connexion SocketIO sur le même host que la page
   const socket = io(window.location.origin, { transports: ['websocket','polling'] });
@@ -46,6 +49,8 @@
     
     hasBet = false;
     currentBets = { A: 0, B: 0, C: 0, D: 0 };
+    currentLingotBet = null; // Reset lingot bet on new question
+    
     updateBetDisplay();
     
     // Déclencher l'animation de question (currentState devrait être à jour)
@@ -61,11 +66,11 @@
           // Après l'animation : plateau visible + mises possibles (sauf si éliminé) + timer actif
           renderAnswers(currentState);
           
-          // Activer les mises uniquement si le joueur a encore des jetons
-          if(myChips > 0){
+          // Activer les mises uniquement si le joueur a encore des jetons ou un lingot
+          if(myChips > 0 || myLingots > 0){
             enableBetting();
             timerActive = true;
-            setMsg('Placez vos jetons et validez votre mise !', 'info');
+            setMsg('Placez vos jetons et votre lingot !', 'info');
           } else {
             disableBetting();
             timerActive = false;
@@ -83,13 +88,29 @@
     const me = state.players?.find(p => p.socket_id === socket.id);
     if(me){
       const previousChips = myChips;
+      const previousLingots = myLingots;
       myPlayerName = me.name;
       myChips = me.score || 0;
+      myLingots = (me.lingots !== undefined) ? me.lingots : 1;
+      
+      // Restaurer le placement du lingot si présent dans l'état (reconnexion)
+      if (state.phase === 'question' && me.bet_lingot) {
+         currentLingotBet = me.bet_lingot;
+      }
+      
       document.getElementById('playerName').textContent = myPlayerName;
       document.getElementById('chips').textContent = myChips;
+      document.getElementById('lingotCount').textContent = myLingots;
       
-      // Si le joueur vient de perdre (passage à 0 jetons) et qu'on n'a pas encore montré le Game Over
-      if(gameStarted && myChips <= 0 && previousChips > 0 && !hasShownGameOver){
+      const lDisp = document.getElementById('lingotDisplay');
+      // Afficher le status lingot
+      if(lDisp) lDisp.style.display = (myLingots > 0 || currentLingotBet) ? '' : 'none';
+
+      // Si le joueur vient de perdre (passage à 0 jetons ET 0 lingots)
+      const isEliminated = (myChips <= 0 && myLingots <= 0);
+      const wasEliminated = (previousChips <= 0 && previousLingots <= 0);
+
+      if(gameStarted && isEliminated && !wasEliminated && !hasShownGameOver){
         hasShownGameOver = true;
         showGameOver();
         return;
@@ -136,6 +157,7 @@
     document.getElementById('lobbyWaiting').style.display = 'flex';
     document.getElementById('gameBoard').style.display = 'none';
     document.getElementById('chipsDisplay').style.display = 'none';
+    document.getElementById('lingotDisplay').style.display = 'none';
     
     // Afficher la liste des joueurs
     const playersList = document.getElementById('lobbyPlayersList');
@@ -197,7 +219,7 @@
 
     // Ne pas déclencher l'animation cinématique ici, elle est gérée par l'événement new_question
     renderAnswers(state);
-
+    
     // Classement
     renderLeaderboard(state.players || []);
 
@@ -208,7 +230,7 @@
       timerActive = false;
     } else if(state.phase === 'question'){
       // Afficher message pour joueurs éliminés (mode spectateur)
-      if(myChips <= 0){
+      if(myChips <= 0 && myLingots <= 0){
         setMsg('👻 Mode spectateur - Vous êtes éliminé mais pouvez continuer à suivre la partie', 'info');
         disableBetting();
         timerActive = false;
@@ -246,7 +268,7 @@
       if(state.question?.answers?.[k]){
         textEl.textContent = state.question.answers[k];
         if(answerCard) answerCard.style.display = '';
-        if(amountEl) amountEl.textContent = currentBets[k] + ' €';
+        if(amountEl) amountEl.textContent = currentBets[k] > 0 ? currentBets[k].toLocaleString('fr-FR') + ' €' : '';
       } else {
         if(answerCard) answerCard.style.display = 'none';
       }
@@ -300,6 +322,13 @@
         score.style.color = '#e53935';
       }
       score.textContent = p.score + ' €';
+
+      // Afficher le lingot dans le leaderboard
+      const lingotSpan = document.createElement('span');
+      if (p.lingots > 0) {
+          lingotSpan.textContent = ' 💎';
+          name.appendChild(lingotSpan);
+      }
       
       row.appendChild(badge);
       row.appendChild(name);
@@ -311,6 +340,15 @@
     footer.textContent = `${players.length} joueur${players.length > 1 ? 's' : ''} connecté${players.length > 1 ? 's' : ''}`;
   }
 
+  function sendBets() {
+      if (!lobbyId) return;
+      socket.emit('player_bets', {
+          lobby_id: lobbyId,
+          bets: currentBets,
+          bet_lingot: currentLingotBet
+      });
+  }
+
   // Gestion des mises
   function updateBetDisplay(){
     const keys = ['A','B','C','D'];
@@ -318,32 +356,61 @@
     
     keys.forEach(k => {
       const input = document.getElementById('bet'+k);
+      const inputVisible = document.getElementById('inputBet'+k);
       const amount = document.getElementById('amount'+k);
       const label = document.getElementById('zoneLabel'+k);
       const visual = document.getElementById('chipsVisual'+k);
+      const lingotBtn = document.getElementById('btnLingot'+k);
       
+      // Update local storage inputs
       if(input){
         input.value = currentBets[k];
         totalBet += currentBets[k];
       }
-      if(amount) amount.textContent = currentBets[k].toLocaleString('fr-FR') + ' €';
+      
+      // Update Visible Input
+      if(inputVisible){
+        if(document.activeElement !== inputVisible){
+             inputVisible.value = currentBets[k] > 0 ? currentBets[k] : '';
+        }
+      }
+      
+      if(amount) amount.textContent = currentBets[k] > 0 ? currentBets[k].toLocaleString('fr-FR') + ' €' : '';
       if(label) label.textContent = currentBets[k] > 0 ? currentBets[k].toLocaleString('fr-FR') + ' €' : 'Glissez ici';
       
+      // Update Lingot Button
+      if(lingotBtn) {
+         if (currentLingotBet === k) {
+             lingotBtn.style.opacity = '1';
+             lingotBtn.style.transform = 'scale(1.2)';
+             lingotBtn.style.border = '2px solid #ffd700';
+             lingotBtn.style.borderRadius = '20%';
+             lingotBtn.style.boxShadow = '0 0 10px gold';
+         } else {
+             lingotBtn.style.opacity = (myLingots > 0 || currentLingotBet) ? '0.7' : '0.2';
+             lingotBtn.style.transform = 'scale(1)';
+             lingotBtn.style.border = 'none';
+             lingotBtn.style.boxShadow = 'none';
+         }
+      }
+
       // Visualisation des jetons (lingots, billets, pièces)
       if(visual){
         visual.innerHTML = '';
         let val = currentBets[k];
+        
+        // Stacks de monnaie
         const ingots = Math.floor(val / 5000);
         val %= 5000;
         const bills = Math.floor(val / 1000);
         val %= 1000;
         const coins = Math.floor(val / 100);
 
-        const addToken = (src, cls) => {
+        const addToken = (src, cls, width) => {
             const img = document.createElement('img');
             img.src = '/static/' + src;
             img.className = cls || 'token-img';
-            img.style.height = '40px';
+            img.style.height = width || '40px';
             img.style.marginRight = '-15px'; 
             img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
             visual.appendChild(img);
@@ -352,6 +419,22 @@
         for(let i=0; i<ingots; i++) addToken('lingot.png', 'token-ingot');
         for(let i=0; i<bills; i++) addToken('billet.jpg', 'token-bill');
         for(let i=0; i<coins; i++) addToken('coin.png', 'token-coin');
+        
+        // Bonus Lingot 
+        if(currentLingotBet === k) {
+            const b = document.createElement('img');
+            b.src = '/static/lingot.png';
+            b.className = 'token-bonus-lingot';
+            b.style.height = '60px'; // Bigger
+            b.style.position = 'absolute';
+            b.style.top = '-40px';
+            b.style.right = '10px';
+            b.style.zIndex = '100';
+            b.style.filter = 'drop-shadow(0 0 10px #ffee00)';
+            b.style.transform = 'rotate(15deg)';
+            visual.appendChild(b);
+            visual.style.position = 'relative';
+        }
       }
     });
     
@@ -394,55 +477,93 @@
     }
   }
 
-  // Boutons de mise (images)
-  document.querySelectorAll('.md-img-btn').forEach(btn => {
-    btn.onclick = () => {
+  // Gestion des inputs de mise
+  document.querySelectorAll('.md-bet-input').forEach(input => {
+    const handleBetInput = (e, roundUp) => {
       // Bloquer si le joueur est éliminé
       if(myChips <= 0){
-        setMsg('❌ Vous êtes éliminé ! Vous n\'avez plus de jetons.', 'error');
+        e.target.value = '';
+        if (myLingots <= 0) {
+            setMsg('❌ Vous êtes éliminé ! Vous n\'avez plus de jetons.', 'error');
+        }
         return;
       }
-      if(hasBet || !currentState || currentState.phase !== 'question') return;
-      
-      const key = btn.dataset.key;
-      const action = btn.dataset.action;
-      const current = currentBets[key] || 0;
-      
-      let next = current;
-      if(action === 'reset') next = 0;
-      else if(action === 'add-100') next += 100;
-      else if(action === 'add-1000') next += 1000;
-      else if(action === 'add-5000') next += 5000;
-
-      next = Math.max(0, next);
-      
-      // Vérifier si on ne dépasse pas le total
-      const totalBetWithoutCurrent = Object.keys(currentBets).reduce((acc, k) => k===key ? acc : acc + currentBets[k], 0);
-      if(totalBetWithoutCurrent + next > myChips){
-         next = Math.max(0, myChips - totalBetWithoutCurrent);
+      if(hasBet || !currentState || currentState.phase !== 'question') {
+           e.target.value = currentBets[e.target.dataset.key] > 0 ? currentBets[e.target.dataset.key] : '';
+           return;
       }
 
-      currentBets[key] = next;
+      const key = e.target.dataset.key;
+      let val = parseInt(e.target.value, 10);
+      if(isNaN(val)) val = 0;
       
+      val = Math.max(0, val);
+      
+      // Arrondir à la centaine supérieure si demandé
+      if(roundUp && val > 0) {
+          val = Math.ceil(val / 100) * 100;
+      }
+      
+      // Vérifier si on ne dépasse pas le total
+      const otherBets = Object.keys(currentBets).reduce((acc, k) => k===key ? acc : acc + currentBets[k], 0);
+      const maxPossible = Math.max(0, myChips - otherBets);
+      
+      if(val > maxPossible){
+          val = maxPossible;
+      }
+      
+      if(roundUp || val > maxPossible) {
+         e.target.value = val > 0 ? val : '';
+      }
+      
+      currentBets[key] = val;
       updateBetDisplay();
+      sendBets();
     };
+
+    input.addEventListener('input', (e) => handleBetInput(e, false));
+    input.addEventListener('change', (e) => handleBetInput(e, true));
   });
 
-  // Gestion du timeout - validation automatique quand le temps est écoulé
+  // Gestion des mises lingots
+  document.querySelectorAll('.md-btn-lingot').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+          if(myChips <= 0 && myLingots <= 0) return; 
+          if(hasBet || !currentState || currentState.phase !== 'question') return;
+
+          const key = btn.dataset.key;
+          
+          if(currentLingotBet === key) {
+              // Enlever le lingot
+              currentLingotBet = null;
+          } else {
+              // Placer ou Déplacer
+              // Possible seulement si on a un lingot en reserve ou déjà placé
+              if (myLingots > 0 || currentLingotBet !== null) {
+                  currentLingotBet = key;
+              }
+          }
+          updateBetDisplay();
+          sendBets();
+      });
+  });
+
+  // Gestion du timeout
   socket.on('tick', (p) => {
     if(!timerActive) return;
     const remaining = p?.time_remaining ?? 0;
     document.getElementById('timerValue').textContent = Math.max(0, remaining);
     updateTimerProgress(remaining);
-    // SUPPRESSION : plus de mise automatique à la dernière seconde
   });
 
   function enableBetting(){
-    document.querySelectorAll('.md-img-btn').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.md-bet-input').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.md-btn-lingot').forEach(btn => btn.disabled = false);
   }
 
   function disableBetting(){
-    document.querySelectorAll('.md-img-btn').forEach(btn => btn.disabled = true);
+    document.querySelectorAll('.md-bet-input').forEach(btn => btn.disabled = true);
+    document.querySelectorAll('.md-btn-lingot').forEach(btn => btn.disabled = true);
   }
 
   function updateTimerProgress(remaining){

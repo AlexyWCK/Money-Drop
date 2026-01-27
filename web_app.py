@@ -52,9 +52,11 @@ def create_app() -> Flask:
         sid: str
         name: str
         score: int = 1000  # jetons (chips)
+        lingots: int = 1   # lingot indépendant (bonus)
         choice: Optional[str] = None
         is_correct: Optional[bool] = None
         bets: Dict[str, int] = field(default_factory=lambda: {"A": 0, "B": 0, "C": 0, "D": 0})
+        bet_lingot: Optional[str] = None # Sur quelle zone le lingot est misé
         socket_id: Optional[str] = None  # SocketIO session ID
 
     @dataclass
@@ -121,9 +123,11 @@ def create_app() -> Flask:
                 self.paused_remaining = None
                 for p in self.players.values():
                     p.score = 10000  # Reset jetons
+                    p.lingots = 1    # Reset lingot
                     p.choice = None
                     p.is_correct = None
                     p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
+                    p.bet_lingot = None
                 # Le host déclenche explicitement le lancement de question
                 self.phase = "waiting"
 
@@ -171,23 +175,28 @@ def create_app() -> Flask:
                     return
                 self.players[sid].choice = c
 
-        def place_bets(self, sid: str, bets: Dict[str, int]) -> None:
-            """Place les mises d'un joueur"""
+        def place_bets(self, sid: str, bets: Dict[str, int], bet_lingot: Optional[str] = None) -> None:
+            """Place les mises d'un joueur, y compris le lingot bonus"""
             with self.lock:
                 if self.phase != "question":
                     return
                 if sid not in self.players:
                     return
                 p = self.players[sid]
-                # Valider les mises
+                # Valider les mises jetons
                 total_bet = sum(bets.get(k, 0) for k in ["A", "B", "C", "D"])
                 if total_bet > p.score:
                     return  # Mise invalide
-                # On ne met à jour p.bets que si le joueur a effectivement misé
-                if total_bet > 0:
-                    p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
-                else:
-                    p.bets = {}  # Si aucune mise, bets reste vide
+                
+                # Valider la mise lingot
+                if bet_lingot and bet_lingot not in ["A", "B", "C", "D"]:
+                    bet_lingot = None # Invalide
+                if bet_lingot and p.lingots < 1:
+                    bet_lingot = None # Pas de lingot dispo
+                
+                p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
+                p.bet_lingot = bet_lingot
+
 
         def all_players_bet(self) -> bool:
             """Vérifie si tous les joueurs ont misé"""
@@ -221,6 +230,15 @@ def create_app() -> Flask:
                     # Le joueur garde UNIQUEMENT sa mise correcte (les jetons non misés sont perdus)
                     p.score = correct_bet
                     p.is_correct = correct_bet > 0
+                    
+                    # Gestion du lingot bonus
+                    # Si le lingot a été misé
+                    if p.bet_lingot:
+                        # Si misé sur la mauvaise réponse, il est perdu
+                        if p.bet_lingot != self.correct:
+                            p.lingots -= 1
+                        # Si misé sur la bonne réponse, il est conservé (pas de changement)
+                    # Si le lingot n'a pas été misé, il est conservé (sécurité)
 
                 self.phase = "results"
 
@@ -239,6 +257,7 @@ def create_app() -> Flask:
                     p.choice = None
                     p.is_correct = None
                     p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
+                    p.bet_lingot = None
                 self.phase = "waiting"
 
         def snapshot(self) -> Dict[str, Any]:
@@ -255,6 +274,8 @@ def create_app() -> Flask:
                         {
                             "name": p.name,
                             "score": p.score,
+                            "lingots": p.lingots,
+                            "bet_lingot": p.bet_lingot,
                             "choice": p.choice,
                             "is_correct": p.is_correct if self.phase == "results" else None,
                             "socket_id": p.socket_id,
@@ -482,22 +503,28 @@ def create_app() -> Flask:
         data = payload or {}
         lobby_id = (data.get("lobby_id") or "").strip()
         bets = data.get("bets", {})
+        bet_lingot = data.get("bet_lingot") # "A", "B", "C", "D" ou None
         sid = request.sid  # Utiliser socket_sid
         lobby = rt_lobbies.get(lobby_id)
         if not sid or not lobby:
             emit("error_msg", {"error": "Lobby ou session invalide"})
             return
-        lobby.place_bets(sid, bets)
+            
+        # Trouver le joueur par son socket_id dans lobby.players (clé peut être autre chose que socket_id)
+        target_sid = None
+        for pid, p in lobby.players.items():
+            if p.socket_id == sid:
+                target_sid = pid
+                break
         
-        # Vérifier si tous les joueurs ont misé pour terminer automatiquement le tour
-        if lobby.all_players_bet():
-            lobby.validate()
-            # Émettre l'événement de révélation de la réponse
-            socketio.emit(
-                "reveal_answer",
-                {"correct": lobby.correct, "question_index": lobby.question_index},
-                room=lobby_id,
-            )
+        if target_sid:
+            lobby.place_bets(target_sid, bets, bet_lingot)
+        else:
+            # Fallback (devrait pas arriver si logique de connection OK)
+            lobby.place_bets(sid, bets, bet_lingot)
+
+        # Ne pas valider automatiquement pour laisser le temps aux joueurs de modifier leurs mises
+        # La validation se fera à la fin du timer (_ticker) ou par forcage hote
         
         _emit_state(lobby)
 

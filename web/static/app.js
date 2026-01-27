@@ -61,7 +61,7 @@ function updateVisuals(state){
   for(const k of ANSWER_KEYS){
     const amount = b[k] || 0;
     const amountEl = $('amount'+k);
-    if(amountEl) amountEl.textContent = `${amount.toLocaleString('fr-FR')} €`;
+    if(amountEl) amountEl.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : '';
 
     const zoneLabel = $('zoneLabel'+k);
     if(zoneLabel) zoneLabel.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : 'Glissez ici';

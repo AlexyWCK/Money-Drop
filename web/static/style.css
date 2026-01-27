@@ -1184,3 +1184,22 @@ input:focus{border-color:rgba(33, 150, 243, 0.6);box-shadow:0 0 0 3px rgba(33, 1
 .md-img-btn[data-action="reset"]:hover {
   background: rgba(255, 107, 107, 0.3);
 }
+
+/* Input for betting amount */
+.md-bet-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.2rem;
+  padding: 8px;
+  width: 120px;
+  text-align: center;
+  margin: 0 auto;
+  display: block;
+}
+.md-bet-input:focus {
+  outline: none;
+  border-color: var(--gold, #FFD700);
+  background: rgba(0, 0, 0, 0.5);
+}
