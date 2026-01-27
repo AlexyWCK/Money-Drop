@@ -94,13 +94,6 @@
     }
   });
 
-  socket.on('tick', (p) => {
-    if(!timerActive) return;
-    const remaining = p?.time_remaining ?? 0;
-    document.getElementById('timerValue').textContent = Math.max(0, remaining);
-    updateTimerProgress(remaining);
-  });
-
   async function playResolutionOnce(correct, questionIndex){
     if(!window.MD_RESOLUTION || !correct) return;
     if(resolving) return;
@@ -385,42 +378,47 @@
     };
   });
 
-  // Bouton valider
-  document.getElementById('submit').onclick = () => {
-    // Bloquer si le joueur est éliminé
-    if(myChips <= 0){
-      setMsg('❌ Vous êtes éliminé ! Vous n\'avez plus de jetons.', 'error');
-      return;
-    }
-    if(hasBet || !currentState || currentState.phase !== 'question') return;
+  // Gestion du timeout - validation automatique quand le temps est écoulé
+  socket.on('tick', (p) => {
+    if(!timerActive) return;
+    const remaining = p?.time_remaining ?? 0;
+    document.getElementById('timerValue').textContent = Math.max(0, remaining);
+    updateTimerProgress(remaining);
     
-    const totalBet = Object.values(currentBets).reduce((a,b) => a+b, 0);
-    if(totalBet === 0){
-      setMsg('⚠ Vous devez placer au moins un jeton !', 'error');
-      return;
+    // Valider JUSTE AVANT que le temps n'atteigne 0 (à 1 seconde restante)
+    // pour éviter la course de conditions avec le serveur
+    if(remaining <= 1 && !hasBet && currentState?.phase === 'question' && myChips > 0){
+      const totalBet = Object.values(currentBets).reduce((a,b) => a+b, 0);
+      
+      // Si des jetons ne sont pas encore misés, les placer automatiquement
+      if(totalBet < myChips){
+        const remainingChips = myChips - totalBet;
+        // Trouver la première case avec des jetons, sinon utiliser A
+        let targetKey = 'A';
+        for(const k of ['A', 'B', 'C', 'D']){
+          if(currentBets[k] > 0){
+            targetKey = k;
+            break;
+          }
+        }
+        currentBets[targetKey] += remainingChips;
+        updateBetDisplay();
+      }
+      
+      // Valider immédiatement
+      socket.emit('player_bets', { lobby_id: lobbyId, bets: currentBets });
+      hasBet = true;
+      setMsg('⏰ Temps bientôt écoulé ! Mise validée automatiquement.', 'info');
+      disableBetting();
     }
-    
-    // IMPORTANT : Vérifier que TOUS les jetons sont misés
-    if(totalBet < myChips){
-      setMsg('⚠ Vous devez miser TOUS vos jetons ! Les jetons non misés seront perdus !', 'error');
-      return;
-    }
-    
-    // Envoyer les mises au serveur
-    socket.emit('player_bets', { lobby_id: lobbyId, bets: currentBets });
-    hasBet = true;
-    setMsg('✓ Mise validée !', 'success');
-    disableBetting();
-  };
+  });
 
   function enableBetting(){
     document.querySelectorAll('.md-circle-btn').forEach(btn => btn.disabled = false);
-    document.getElementById('submit').disabled = false;
   }
 
   function disableBetting(){
     document.querySelectorAll('.md-circle-btn').forEach(btn => btn.disabled = true);
-    document.getElementById('submit').disabled = true;
   }
 
   function updateTimerProgress(remaining){
