@@ -1149,3 +1149,38 @@ input:focus{border-color:rgba(33, 150, 243, 0.6);box-shadow:0 0 0 3px rgba(33, 1
 .md-game-over-actions .md-btn {
   min-width: 220px;
 }
+
+/* Buttons with images for coins, bills, ingots */
+.md-img-btn {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 4px;
+  margin: 0 4px;
+  transition: transform 0.2s, background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.md-img-btn:hover {
+  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.md-img-btn img {
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+}
+.md-img-btn[data-action="reset"] {
+  height: 48px;
+  width: 48px;
+  font-size: 24px;
+  color: var(--bad, #FF6B6B);
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 50%;
+}
+.md-img-btn[data-action="reset"]:hover {
+  background: rgba(255, 107, 107, 0.3);
+}

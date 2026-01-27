@@ -35,7 +35,7 @@ def create_app() -> Flask:
     engine = MoneyDropEngine(build_question_bank())
     sessions = SessionManager()
     lobbies = LobbyManager()
-    config = GameConfig(starting_chips=1000, question_count=7, allow_unbet_chips=True)
+    config = GameConfig(starting_chips=10000, question_count=7, allow_unbet_chips=True)
 
     create_lobby_password = os.environ.get("MONEYDROP_CREATE_PASSWORD", "Droit_Terrasse2026")
 
@@ -89,7 +89,7 @@ def create_app() -> Flask:
                     return
                 if len(self.players) >= self.max_players:
                     raise ValueError("Lobby plein")
-                self.players[sid] = RTPlayer(sid=sid, name=name, score=1000, socket_id=socket_sid)
+                self.players[sid] = RTPlayer(sid=sid, name=name, score=10000, socket_id=socket_sid)
 
         def time_remaining(self) -> Optional[int]:
             if self.phase == "question" and self.question_started_at is not None:
@@ -120,7 +120,7 @@ def create_app() -> Flask:
                 self.question_started_at = None
                 self.paused_remaining = None
                 for p in self.players.values():
-                    p.score = 1000  # Reset jetons
+                    p.score = 10000  # Reset jetons
                     p.choice = None
                     p.is_correct = None
                     p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}

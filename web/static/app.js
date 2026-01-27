@@ -68,38 +68,54 @@ function updateVisuals(state){
 
     const visual = $('chipsVisual'+k);
     if(visual){
-      const stacks = Math.min(Math.floor(amount / 1000), 10);
       visual.innerHTML = '';
-      for(let i=0;i<stacks;i++){
-        const stack = document.createElement('div');
-        stack.className = 'chip-stack';
-        visual.appendChild(stack);
-      }
-    }
+      let val = amount;
+      const ingots = Math.floor(val / 5000);
+      val %= 5000;
+      const bills = Math.floor(val / 1000);
+      val %= 1000;
+      const coins = Math.floor(val / 100);
 
-    // Toggle minus button color
-    const minusBtn = document.querySelector(`.md-circle-btn-minus[data-key="${k}"]`);
-    if(minusBtn){
-      if(amount > 0){
-        minusBtn.classList.add('active');
-        minusBtn.classList.remove('inactive');
-      }else{
-        minusBtn.classList.remove('active');
-        minusBtn.classList.add('inactive');
-      }
+      const addToken = (src) => {
+        const img = document.createElement('img');
+        img.src = '/static/' + src;
+        img.className = 'token-img';
+        img.style.height = '40px';
+        img.style.marginRight = '-15px';
+        img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
+        visual.appendChild(img);
+      };
+
+      for(let i=0; i<ingots; i++) addToken('lingot.png');
+      for(let i=0; i<bills; i++) addToken('billet.jpg');
+      for(let i=0; i<coins; i++) addToken('coin.png');
     }
   }
 
   // Remaining stacks visualization
   const moneyStacks = $('moneyStacks');
   if(moneyStacks){
-    const stacks = Math.min(Math.ceil(remaining / 1000), 10);
-    moneyStacks.innerHTML = '';
-    for(let i=0;i<stacks;i++){
-      const stack = document.createElement('div');
-      stack.className = 'chip-stack';
-      moneyStacks.appendChild(stack);
-    }
+      moneyStacks.innerHTML = '';
+      let val = remaining;
+      const ingots = Math.floor(val / 5000);
+      val %= 5000;
+      const bills = Math.floor(val / 1000);
+      val %= 1000;
+      const coins = Math.floor(val / 100);
+
+      const addToken = (src) => {
+        const img = document.createElement('img');
+        img.src = '/static/' + src;
+        img.style.height = '30px';
+        img.style.marginRight = '-10px';
+        moneyStacks.appendChild(img);
+      };
+
+      const maxItems = 40; 
+      let count = 0;
+      for(let i=0; i<ingots && count<maxItems; i++, count++) addToken('lingot.png');
+      for(let i=0; i<bills && count<maxItems; i++, count++) addToken('billet.jpg');
+      for(let i=0; i<coins && count<maxItems; i++, count++) addToken('coin.png');
   }
 
   const remainingBar = $('remainingBar');
@@ -388,13 +404,20 @@ function clampBetsToChips(state){
   for(const k of ANSWER_KEYS) setBet(k, b[k]||0);
 }
 
-async function onAdjust(key, dir){
+async function onAdjust(key, action){
   const state = await getState();
   const chips = state?.player?.chips ?? 0;
   const b = getBets();
   const current = b[key] || 0;
 
-  let next = current + (dir === 'plus' ? BET_STEP : -BET_STEP);
+  let next = current;
+  if(action === 'reset') next = 0;
+  else if(action === 'add-100') next += 100;
+  else if(action === 'add-1000') next += 1000;
+  else if(action === 'add-5000') next += 5000;
+  else if(action === 'plus') next += 100;
+  else if(action === 'minus') next -= 100;
+
   next = Math.max(0, next);
   b[key] = next;
 

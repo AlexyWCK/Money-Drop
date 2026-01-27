@@ -5,7 +5,7 @@
   
   let currentState = null;
   let myPlayerName = '';
-  let myChips = 1000;
+  let myChips = 10000;
   let currentBets = { A: 0, B: 0, C: 0, D: 0 };
   let hasBet = false;
   let gameStarted = false;
@@ -326,18 +326,32 @@
         input.value = currentBets[k];
         totalBet += currentBets[k];
       }
-      if(amount) amount.textContent = currentBets[k] + ' €';
-      if(label) label.textContent = currentBets[k] > 0 ? currentBets[k] + ' €' : 'Glissez ici';
+      if(amount) amount.textContent = currentBets[k].toLocaleString('fr-FR') + ' €';
+      if(label) label.textContent = currentBets[k] > 0 ? currentBets[k].toLocaleString('fr-FR') + ' €' : 'Glissez ici';
       
-      // Visualisation des jetons
+      // Visualisation des jetons (lingots, billets, pièces)
       if(visual){
         visual.innerHTML = '';
-        const numChips = Math.min(Math.floor(currentBets[k] / 100), 10);
-        for(let i = 0; i < numChips; i++){
-          const chip = document.createElement('div');
-          chip.className = 'md-chip';
-          visual.appendChild(chip);
-        }
+        let val = currentBets[k];
+        const ingots = Math.floor(val / 5000);
+        val %= 5000;
+        const bills = Math.floor(val / 1000);
+        val %= 1000;
+        const coins = Math.floor(val / 100);
+
+        const addToken = (src, cls) => {
+            const img = document.createElement('img');
+            img.src = '/static/' + src;
+            img.className = cls || 'token-img';
+            img.style.height = '40px';
+            img.style.marginRight = '-15px'; 
+            img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
+            visual.appendChild(img);
+        };
+
+        for(let i=0; i<ingots; i++) addToken('lingot.png', 'token-ingot');
+        for(let i=0; i<bills; i++) addToken('billet.jpg', 'token-bill');
+        for(let i=0; i<coins; i++) addToken('coin.png', 'token-coin');
       }
     });
     
@@ -355,18 +369,33 @@
     if(moneyStacks){
       moneyStacks.innerHTML = '';
       if(myChips > 0){
-        const numChips = Math.min(Math.floor(unbet / 100), 10);
-        for(let i = 0; i < numChips; i++){
-          const chip = document.createElement('div');
-          chip.className = 'md-chip';
-          moneyStacks.appendChild(chip);
-        }
+        let val = unbet;
+        const ingots = Math.floor(val / 5000);
+        val %= 5000;
+        const bills = Math.floor(val / 1000);
+        val %= 1000;
+        const coins = Math.floor(val / 100);
+
+        const addToken = (src) => {
+            const img = document.createElement('img');
+            img.src = '/static/' + src;
+            img.style.height = '30px';
+            img.style.marginRight = '-10px';
+            moneyStacks.appendChild(img);
+        };
+
+        // Limiter l'affichage
+        const maxItems = 40; 
+        let count = 0;
+        for(let i=0; i<ingots && count<maxItems; i++, count++) addToken('lingot.png');
+        for(let i=0; i<bills && count<maxItems; i++, count++) addToken('billet.jpg');
+        for(let i=0; i<coins && count<maxItems; i++, count++) addToken('coin.png');
       }
     }
   }
 
-  // Boutons +/-
-  document.querySelectorAll('.md-circle-btn').forEach(btn => {
+  // Boutons de mise (images)
+  document.querySelectorAll('.md-img-btn').forEach(btn => {
     btn.onclick = () => {
       // Bloquer si le joueur est éliminé
       if(myChips <= 0){
@@ -377,18 +406,23 @@
       
       const key = btn.dataset.key;
       const action = btn.dataset.action;
-      const step = 100;
+      const current = currentBets[key] || 0;
       
-      if(action === 'plus'){
-        const totalBet = Object.values(currentBets).reduce((a,b) => a+b, 0);
-        if(totalBet + step <= myChips){
-          currentBets[key] += step;
-        }
-      } else if(action === 'minus'){
-        if(currentBets[key] >= step){
-          currentBets[key] -= step;
-        }
+      let next = current;
+      if(action === 'reset') next = 0;
+      else if(action === 'add-100') next += 100;
+      else if(action === 'add-1000') next += 1000;
+      else if(action === 'add-5000') next += 5000;
+
+      next = Math.max(0, next);
+      
+      // Vérifier si on ne dépasse pas le total
+      const totalBetWithoutCurrent = Object.keys(currentBets).reduce((acc, k) => k===key ? acc : acc + currentBets[k], 0);
+      if(totalBetWithoutCurrent + next > myChips){
+         next = Math.max(0, myChips - totalBetWithoutCurrent);
       }
+
+      currentBets[key] = next;
       
       updateBetDisplay();
     };
@@ -430,11 +464,11 @@
   });
 
   function enableBetting(){
-    document.querySelectorAll('.md-circle-btn').forEach(btn => btn.disabled = false);
+    document.querySelectorAll('.md-img-btn').forEach(btn => btn.disabled = false);
   }
 
   function disableBetting(){
-    document.querySelectorAll('.md-circle-btn').forEach(btn => btn.disabled = true);
+    document.querySelectorAll('.md-img-btn').forEach(btn => btn.disabled = true);
   }
 
   function updateTimerProgress(remaining){
