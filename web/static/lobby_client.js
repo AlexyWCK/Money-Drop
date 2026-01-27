@@ -28,6 +28,14 @@
 
   socket.on('error_msg', (p) => setMsg(p?.error || 'Erreur', 'error'));
   
+  // Événement quand le jeu se termine
+  socket.on('game_ended', (data) => {
+    console.log('🎊 Jeu terminé ! Redirection vers le podium...');
+    setTimeout(() => {
+      window.location.href = `/lobby/${lobbyId}/podium?lobby_id=${lobbyId}`;
+    }, 1000);
+  });
+  
   // Événement déclenché quand l'hôte lance la partie
   socket.on('game_started', () => {
     if(!gameStarted){
@@ -185,6 +193,19 @@
     document.getElementById('finalScore').textContent = myChips + ' €';
     timerActive = false;
     disableBetting();
+
+    // Message personnalisé selon le score restant
+    const msgDiv = document.querySelector('.md-game-over-message p');
+    if (myChips > 0) {
+      msgDiv.textContent = `Bravo ! Vous avez sauvé ${myChips} € !`;
+    } else {
+      msgDiv.textContent = "Dommage, vous avez perdu tous vos jetons.";
+    }
+
+    // Rediriger automatiquement vers le podium après 3 secondes
+    setTimeout(() => {
+      window.location.href = `/lobby/${lobbyId}/podium?lobby_id=${lobbyId}`;
+    }, 3000);
   }
 
   function render(state){
