@@ -86,7 +86,7 @@ function updateVisuals(state){
         visual.appendChild(img);
       };
 
-      for(let i=0; i<ingots; i++) addToken('lingot.png');
+      for(let i=0; i<ingots; i++) addToken('mallette.png');
       for(let i=0; i<bills; i++) addToken('billet.jpg');
       for(let i=0; i<coins; i++) addToken('coin.png');
     }

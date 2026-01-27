@@ -410,13 +410,13 @@
             const img = document.createElement('img');
             img.src = '/static/' + src;
             img.className = cls || 'token-img';
-            img.style.height = width || '40px';
-            img.style.marginRight = '-15px'; 
+            img.style.height = width || '60px';
+            img.style.marginRight = '-20px'; 
             img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
             visual.appendChild(img);
         };
 
-        for(let i=0; i<ingots; i++) addToken('lingot.png', 'token-ingot');
+        for(let i=0; i<ingots; i++) addToken('mallette.png', 'token-ingot');
         for(let i=0; i<bills; i++) addToken('billet.jpg', 'token-bill');
         for(let i=0; i<coins; i++) addToken('coin.png', 'token-coin');
         
@@ -425,10 +425,10 @@
             const b = document.createElement('img');
             b.src = '/static/lingot.png';
             b.className = 'token-bonus-lingot';
-            b.style.height = '60px'; // Bigger
+            b.style.height = '100px'; // Bigger
             b.style.position = 'absolute';
-            b.style.top = '-40px';
-            b.style.right = '10px';
+            b.style.top = '-60px';
+            b.style.right = '0';
             b.style.zIndex = '100';
             b.style.filter = 'drop-shadow(0 0 10px #ffee00)';
             b.style.transform = 'rotate(15deg)';
@@ -462,15 +462,15 @@
         const addToken = (src) => {
             const img = document.createElement('img');
             img.src = '/static/' + src;
-            img.style.height = '30px';
-            img.style.marginRight = '-10px';
+            img.style.height = '45px';
+            img.style.marginRight = '-15px';
             moneyStacks.appendChild(img);
         };
 
         // Limiter l'affichage
         const maxItems = 40; 
         let count = 0;
-        for(let i=0; i<ingots && count<maxItems; i++, count++) addToken('lingot.png');
+        for(let i=0; i<ingots && count<maxItems; i++, count++) addToken('mallette.png');
         for(let i=0; i<bills && count<maxItems; i++, count++) addToken('billet.jpg');
         for(let i=0; i<coins && count<maxItems; i++, count++) addToken('coin.png');
       }
