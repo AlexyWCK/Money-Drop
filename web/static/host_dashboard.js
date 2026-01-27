@@ -20,6 +20,15 @@
 
   socket.on('error_msg', (p) => setMsg(p?.error || 'Erreur'));
   socket.on('state', (state) => render(state));
+  
+  // Événement quand le jeu se termine
+  socket.on('game_ended', (data) => {
+    console.log('🎊 Jeu terminé sur le dashboard ! Redirection vers le podium...');
+    setTimeout(() => {
+      window.location.href = `/lobby/${lobbyId}/podium?lobby_id=${lobbyId}`;
+    }, 1000);
+  });
+  
   socket.on('tick', (p) => {
     const el = document.getElementById('timeRemaining');
     if(el) el.textContent = String(p?.time_remaining ?? '-');

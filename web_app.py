@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import eventlet
+eventlet.monkey_patch()
+
 import os
 import secrets
 import threading
@@ -29,7 +32,15 @@ def create_app() -> Flask:
     )
     app.secret_key = os.environ.get("MONEYDROP_SECRET", "dev-secret-change-me")
 
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+    socketio = SocketIO(
+        app,
+        cors_allowed_origins="*",
+        async_mode="eventlet",
+        engineio_logger=False,
+        socketio_logger=False,
+        ping_timeout=60,
+        ping_interval=25
+    )
 
     leaderboard = Leaderboard(str(BASE_DIR / "data" / "leaderboard.json"))
     engine = MoneyDropEngine(build_question_bank())
@@ -438,6 +449,21 @@ def create_app() -> Flask:
         player_name = session.get(f"player_name_{lobby_id}", "Joueur")
         return render_template("lobby_client.html", lobby_id=lobby_id, player_name=player_name)
 
+    @app.get("/lobby/<lobby_id>/podium")
+    def lobby_podium(lobby_id: str):
+        """Page du podium final"""
+        _ensure_sid()
+        lobby = rt_lobbies.get(lobby_id)
+        if not lobby:
+            return redirect(url_for("menu", error="unknown-lobby"))
+        if lobby.phase != "finished":
+            # Si pas fini, rediriger vers la page appropriée
+            if session.get("sid") == lobby.host_sid:
+                return redirect(url_for("lobby_host", lobby_id=lobby_id))
+            else:
+                return redirect(url_for("lobby_client", lobby_id=lobby_id))
+        return render_template("podium_final.html", lobby_id=lobby_id)
+
     # Socket.IO events
     def _emit_state(lobby: RealtimeLobby) -> None:
         socketio.emit("state", lobby.snapshot(), room=lobby.lobby_id)
@@ -655,7 +681,9 @@ def create_app() -> Flask:
             _emit_state(lobby)
             socketio.emit("new_question", {}, room=lobby_id)
         else:
+            # Jeu terminé - émettre l'événement de fin
             _emit_state(lobby)
+            socketio.emit("game_ended", {"lobby_id": lobby_id}, room=lobby_id)
 
     def _ticker() -> None:
         while True:
