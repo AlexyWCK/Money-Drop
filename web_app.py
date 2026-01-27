@@ -138,7 +138,7 @@ def create_app() -> Flask:
                 for p in self.players.values():
                     p.choice = None
                     p.is_correct = None
-                    p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
+                    # On ne touche pas à p.bets ici : il reste tel quel
                 self.phase = "question"
                 # Le chrono démarre après la cinématique (plateau visible)
                 self.question_started_at = time.time() + self.CINEMATIC_DELAY_SECONDS
@@ -183,7 +183,11 @@ def create_app() -> Flask:
                 total_bet = sum(bets.get(k, 0) for k in ["A", "B", "C", "D"])
                 if total_bet > p.score:
                     return  # Mise invalide
-                p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
+                # On ne met à jour p.bets que si le joueur a effectivement misé
+                if total_bet > 0:
+                    p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
+                else:
+                    p.bets = {}  # Si aucune mise, bets reste vide
 
         def all_players_bet(self) -> bool:
             """Vérifie si tous les joueurs ont misé"""
@@ -191,8 +195,8 @@ def create_app() -> Flask:
                 if self.phase != "question":
                     return False
                 for p in self.players.values():
-                    total_bet = sum(p.bets.values())
-                    if total_bet == 0:  # Joueur n'a pas encore misé
+                    # Si p.bets est vide ou toutes les mises sont à 0, le joueur n'a pas misé
+                    if not p.bets or sum(p.bets.values()) == 0:
                         return False
                 return len(self.players) > 0  # Au moins un joueur et tous ont misé
 
@@ -205,17 +209,19 @@ def create_app() -> Flask:
                     return
                 q = self.questions[self.question_index]
                 self.correct = q.correct
-                
+
                 # Calculer les gains/pertes pour chaque joueur
                 for p in self.players.values():
-                    total_bet = sum(p.bets.values())
-                    unbet = p.score - total_bet
+                    # Si le joueur n'a pas misé (p.bets vide ou tout à 0), il perd tout
+                    if not p.bets or sum(p.bets.values()) == 0:
+                        p.score = 0
+                        p.is_correct = False
+                        continue
                     correct_bet = p.bets.get(self.correct, 0)
-                    
                     # Le joueur garde UNIQUEMENT sa mise correcte (les jetons non misés sont perdus)
                     p.score = correct_bet
                     p.is_correct = correct_bet > 0
-                    
+
                 self.phase = "results"
 
         def next_question(self) -> None:
