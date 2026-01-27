@@ -685,6 +685,33 @@ def create_app() -> Flask:
             _emit_state(lobby)
             socketio.emit("game_ended", {"lobby_id": lobby_id}, room=lobby_id)
 
+    @socketio.on("host_kick_player")
+    def _ws_host_kick(payload):
+        """Exclure un joueur du lobby"""
+        data = payload or {}
+        lobby_id = (data.get("lobby_id") or "").strip()
+        player_name = (data.get("player_name") or "").strip()
+        
+        lobby = rt_lobbies.get(lobby_id)
+        if not lobby:
+            emit("error_msg", {"error": "unknown-lobby"})
+            return
+        if not _is_host(lobby):
+            emit("error_msg", {"error": "Host uniquement"})
+            return
+        
+        # Trouver et supprimer le joueur
+        player_to_kick = None
+        for sid, player in list(lobby.players.items()):
+            if player.name == player_name:
+                player_to_kick = sid
+                break
+        
+        if player_to_kick:
+            del lobby.players[player_to_kick]
+            _emit_state(lobby)
+            socketio.emit("player_kicked", {"player_name": player_name}, room=lobby_id)
+
     def _ticker() -> None:
         while True:
             try:
