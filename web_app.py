@@ -288,13 +288,6 @@ def create_app() -> Flask:
 
     rt_lobbies = RealtimeLobbyManager()
 
-    def _shuffled_questions(count: int) -> list:
-        import random
-
-        qs = list(engine._questions)
-        random.shuffle(qs)
-        return qs[:count]
-
     def _require_session() -> tuple[str, GameSession]:
         sid = session.get("sid")
         if not sid:
@@ -515,7 +508,7 @@ def create_app() -> Flask:
             return
         
         # Initialiser le jeu ET lancer automatiquement la première question
-        lobby.start_game(_shuffled_questions(lobby.question_total))
+        lobby.start_game(list(engine._questions)[:lobby.question_total])
         lobby.launch_question()
         
         # Émettre les événements dans le bon ordre : 1. game_started, 2. state, 3. new_question
