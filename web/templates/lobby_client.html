@@ -160,7 +160,6 @@
                 </button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualB" aria-hidden="true"></div>
-              <div class="md-zone-label" id="zoneLabelB">Glissez ici</div>
               <input id="betB" class="md-hidden" type="number" min="0" step="100" value="0" />
             </div>
 
@@ -193,11 +192,13 @@
           <div class="md-money">
             <div class="md-money-title">Jetons restants à placer</div>
             <div id="moneyStacks" class="md-money-stacks" aria-hidden="true"></div>
-            <div class="md-money-bar">
+            <div class="md-money-text" style="text-align: center; font-weight: bold; margin-top: 5px;">
+                <span id="unbet">0</span> € / <span id="totalChips">0</span> €
+            </div>
+            <div class="md-money-bar" style="display: none;">
               <div class="md-money-bar-track">
                 <div id="remainingBar" class="md-money-bar-fill"></div>
               </div>
-              <div class="md-money-bar-text"><span id="unbet">0</span> € / <span id="totalChips">0</span> €</div>
             </div>
           </div>
 

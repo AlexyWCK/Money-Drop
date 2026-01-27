@@ -397,6 +397,14 @@
       // Visualisation des jetons (lingots, billets, pièces)
       if(visual){
         visual.innerHTML = '';
+
+        // Override style for multi-row
+        visual.style.display = 'flex';
+        visual.style.flexDirection = 'column-reverse'; 
+        visual.style.justifyContent = 'flex-start';
+        visual.style.alignItems = 'center';
+        visual.style.gap = '-35px'; // Overlap vertical
+
         let val = currentBets[k];
         
         // Stacks de monnaie
@@ -406,34 +414,57 @@
         val %= 1000;
         const coins = Math.floor(val / 100);
 
-        const addToken = (src, cls, width) => {
-            const img = document.createElement('img');
-            img.src = '/static/' + src;
-            img.className = cls || 'token-img';
-            img.style.height = width || '60px';
-            img.style.marginRight = '-20px'; 
-            img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
-            visual.appendChild(img);
-        };
+        // Build item list
+        const items = [];
+        for(let i=0; i<ingots; i++) items.push({src:'mallette.png', cls:'token-ingot'});
+        for(let i=0; i<bills; i++) items.push({src:'billet.jpg', cls:'token-bill'});
+        for(let i=0; i<coins; i++) items.push({src:'coin.png', cls:'token-coin'});
 
-        for(let i=0; i<ingots; i++) addToken('mallette.png', 'token-ingot');
-        for(let i=0; i<bills; i++) addToken('billet.jpg', 'token-bill');
-        for(let i=0; i<coins; i++) addToken('coin.png', 'token-coin');
+        // Chunk items (Max 2 per row)
+        const chunkSize = 2; // "plus de 2 billets" -> limite à 2
+        for (let i = 0; i < items.length; i += chunkSize) {
+            const chunk = items.slice(i, i + chunkSize);
+            
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'center';
+            row.style.alignItems = 'flex-end';
+            row.style.marginBottom = '-20px'; // Overlap visual
+            row.style.zIndex = i + 1;
+            
+            chunk.forEach(item => {
+                const img = document.createElement('img');
+                img.src = '/static/' + item.src;
+                img.className = item.cls || 'token-img';
+                
+                if (item.src === 'mallette.png') {
+                    img.style.height = '120px'; 
+                } else {
+                    img.style.height = '60px'; 
+                }
+                
+                img.style.marginRight = '-20px'; 
+                img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
+                row.appendChild(img);
+            });
+            visual.appendChild(row);
+        }
         
         // Bonus Lingot 
         if(currentLingotBet === k) {
             const b = document.createElement('img');
             b.src = '/static/lingot.png';
             b.className = 'token-bonus-lingot';
-            b.style.height = '100px'; // Bigger
+            b.style.height = '100px'; 
             b.style.position = 'absolute';
-            b.style.top = '-60px';
-            b.style.right = '0';
-            b.style.zIndex = '100';
+            b.style.top = '10px';
+            b.style.right = '5px';
+            b.style.zIndex = '1000';
             b.style.filter = 'drop-shadow(0 0 10px #ffee00)';
             b.style.transform = 'rotate(15deg)';
             visual.appendChild(b);
-            visual.style.position = 'relative';
+            // Avoid changing container positioning as it breaks absolute layout relative to parent
+            // visual.style.position = 'relative'; 
         }
       }
     });
