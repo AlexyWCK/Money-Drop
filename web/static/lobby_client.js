@@ -12,6 +12,7 @@
   let timerActive = false;
   let resolving = false;
   let lastResolvedQuestionIndex = null;
+  let hasShownGameOver = false; // Pour tracker si on a déjà montré le Game Over
 
   // Connexion SocketIO sur le même host que la page
   const socket = io(window.location.origin, { transports: ['websocket','polling'] });
@@ -38,6 +39,11 @@
 
   // Animation cinématique pour nouvelle question
   socket.on('new_question', () => {
+    // Si le joueur est éliminé et qu'on affiche Game Over, basculer en mode spectateur
+    if(myChips <= 0 && hasShownGameOver){
+      showGameBoard(); // Revenir au plateau de jeu
+    }
+    
     hasBet = false;
     currentBets = { A: 0, B: 0, C: 0, D: 0 };
     updateBetDisplay();
@@ -52,11 +58,19 @@
         index: currentState.question_index,
         prompt: currentState.question.prompt,
         onAfterReveal: () => {
-          // Après l'animation : plateau visible + mises possibles + timer actif
+          // Après l'animation : plateau visible + mises possibles (sauf si éliminé) + timer actif
           renderAnswers(currentState);
-          enableBetting();
-          timerActive = true;
-          setMsg('Placez vos jetons et validez votre mise !', 'info');
+          
+          // Activer les mises uniquement si le joueur a encore des jetons
+          if(myChips > 0){
+            enableBetting();
+            timerActive = true;
+            setMsg('Placez vos jetons et validez votre mise !', 'info');
+          } else {
+            disableBetting();
+            timerActive = false;
+            setMsg('👻 Mode spectateur - Vous êtes éliminé mais pouvez continuer à suivre la partie', 'info');
+          }
         }
       });
     }
@@ -68,16 +82,18 @@
     // Récupérer mes informations
     const me = state.players?.find(p => p.socket_id === socket.id);
     if(me){
+      const previousChips = myChips;
       myPlayerName = me.name;
       myChips = me.score || 0;
       document.getElementById('playerName').textContent = myPlayerName;
       document.getElementById('chips').textContent = myChips;
-    }
-    
-    // Vérifier si le joueur est éliminé
-    if(gameStarted && myChips <= 0){
-      showGameOver();
-      return;
+      
+      // Si le joueur vient de perdre (passage à 0 jetons) et qu'on n'a pas encore montré le Game Over
+      if(gameStarted && myChips <= 0 && previousChips > 0 && !hasShownGameOver){
+        hasShownGameOver = true;
+        showGameOver();
+        return;
+      }
     }
     
     // Gérer la transition entre lobby et jeu
@@ -191,9 +207,9 @@
       disableBetting();
       timerActive = false;
     } else if(state.phase === 'question'){
-      // Afficher message pour joueurs éliminés
+      // Afficher message pour joueurs éliminés (mode spectateur)
       if(myChips <= 0){
-        setMsg('❌ Vous êtes éliminé ! Il ne vous reste plus d\'argent.', 'error');
+        setMsg('👻 Mode spectateur - Vous êtes éliminé mais pouvez continuer à suivre la partie', 'info');
         disableBetting();
         timerActive = false;
       } else {
@@ -441,4 +457,16 @@
   // Initialisation
   updateBetDisplay();
   disableBetting();
+  
+  // Gestionnaire pour le bouton Mode spectateur dans le Game Over
+  const btnSpectator = document.getElementById('btnSpectator');
+  if(btnSpectator){
+    btnSpectator.addEventListener('click', () => {
+      // Revenir au plateau de jeu en mode spectateur
+      showGameBoard();
+      if(currentState){
+        render(currentState);
+      }
+    });
+  }
 })();
