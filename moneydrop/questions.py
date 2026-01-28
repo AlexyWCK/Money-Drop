@@ -12,217 +12,124 @@ def build_question_bank() -> list[Question]:
     - Au moins une question exploite le tableau récapitulatif.
     """
 
-    q: list[Question] = []
-    # --- MUSIQUE ---
-    q += [
+    q: list[Question] = [
+        # --- NIVEAU FACILE ---
         Question(
-            category="MUSIQUE",
-            prompt="Qui est l'artiste de la chanson 'Rolling in the Deep' ?",
+            category="DROIT/INFO",
+            prompt="En France, le CODE SOURCE d'un logiciel est protégé par :",
             answers={
-                "A": "Adele",
-                "B": "Rihanna",
-                "C": "Beyoncé",
-                "D": "Amy Winehouse",
-            },
-            correct="A",
-            explanation="'Rolling in the Deep' est un titre d'Adele (2010).",
-        ),
-        Question(
-            category="MUSIQUE",
-            prompt="En quelle année est sorti l'album 'Random Access Memories' (Daft Punk) ?",
-            answers={"A": "2007", "B": "2011", "C": "2013", "D": "2016"},
-            correct="C",
-            explanation="Sorti en 2013.",
-        ),
-        Question(
-            category="MUSIQUE",
-            prompt="Quel genre est le plus souvent associé au groupe Metallica ?",
-            answers={
-                "A": "Jazz",
-                "B": "Metal",
-                "C": "Reggae",
-                "D": "House",
+                "A": "Le Brevet industriel",
+                "B": "Le Droit d'Auteur",
+                "C": "Le Secret Défense",
+                "D": "Le Droit des Marques",
             },
             correct="B",
-            explanation="Metallica est un groupe de heavy metal/thrash metal.",
         ),
         Question(
-            category="MUSIQUE",
-            prompt="Quelle artiste est connue pour la chanson 'Bad Guy' ?",
-            answers={"A": "Billie Eilish", "B": "Dua Lipa", "C": "Sia", "D": "Madonna"},
-            correct="A",
-            explanation="'Bad Guy' est un hit de Billie Eilish (2019).",
-        ),
-        Question(
-            category="MUSIQUE",
-            prompt="Quel instrument est au cœur d'un "
-            "morceau de 'piano solo' ?",
-            answers={"A": "Guitare", "B": "Saxophone", "C": "Piano", "D": "Batterie"},
+            category="DROIT/INFO",
+            prompt="Que signifie l'acronyme RGPD ?",
+            answers={
+                "A": "Règlement Global pour la Protection des Données",
+                "B": "Régime Général de la Propriété des Données",
+                "C": "Règlement Général sur la Protection des Données",
+                "D": "Registre Gouvernemental des Preuves Digitales",
+            },
             correct="C",
-            explanation="Par définition : piano solo = piano.",
         ),
-    ]
+        Question(
+            category="DROIT/INFO",
+            prompt="Le principe de 'Minimisation' (RGPD) impose de :",
+            answers={
+                "A": "Collecter le moins de données possible",
+                "B": "Minimiser le coût du stockage",
+                "C": "Réduire la taille de la base de données",
+                "D": "Ne garder les données que 24h",
+            },
+            correct="A",
+        ),
 
-    # --- DROIT / INFORMATIQUE (strictement thèmes fournis) ---
-    q += [
+        # --- NIVEAU MOYEN ---
         Question(
             category="DROIT/INFO",
-            prompt="Dans le tableau récapitulatif, la 'Base (contenu)' est protégée par :",
+            prompt="Pour protéger la STRUCTURE d'une base de données par le droit d'auteur, elle doit être :",
             answers={
-                "A": "Droit d'auteur (structure)",
-                "B": "Droit sui generis (contenu)",
-                "C": "RGPD", 
-                "D": "Aucune protection",
+                "A": "Volumineuse",
+                "B": "Originale",
+                "C": "Rentable",
+                "D": "Secrète",
             },
             correct="B",
-            explanation="Le contenu d'une base peut relever du droit sui generis (investissement), durée 15 ans.",
         ),
         Question(
             category="DROIT/INFO",
-            prompt="Selon le tableau, la durée associée au droit sui generis (base - contenu) est :",
-            answers={"A": "70 ans", "B": "15 ans", "C": "5 ans", "D": "Illimitée"},
-            correct="B",
-            explanation="Droit sui generis : 15 ans (liée à l'investissement).",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="Qu'est-ce qu'une injection SQL ?",
+            prompt="Quel droit protège l'INVESTISSEMENT financier (le contenu) d'une base de données ?",
             answers={
-                "A": "Une technique de chiffrement de base de données",
-                "B": "Une attaque consistant à insérer du SQL malveillant dans des entrées",
-                "C": "Une méthode pour accélérer les requêtes",
-                "D": "Un protocole réseau",
-            },
-            correct="B",
-            explanation="Définition : injection de code SQL via une entrée non filtrée.",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="Quel exemple illustre une injection SQL (id = ...) ?",
-            answers={
-                "A": "id=42",
-                "B": "id=1; DROP TABLE users;--",
-                "C": "id=abc",
-                "D": "id=2025-01-21",
-            },
-            correct="B",
-            explanation="Exemple classique : terminaison de requête + commande + commentaire.",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="Parmi ces droits RGPD, lequel correspond à la 'portabilité' ?",
-            answers={
-                "A": "Obtenir ses données dans un format structuré et les transmettre à un autre service",
-                "B": "Supprimer toutes les données sur Internet",
-                "C": "Interdire toute collecte de données pour toujours",
-                "D": "Obtenir l'accès au code source du site",
+                "A": "Le Droit Sui Generis",
+                "B": "Le Droit à l'image",
+                "C": "Le Copyright",
+                "D": "Le Droit moral",
             },
             correct="A",
-            explanation="Portabilité : récupérer et transférer ses données.",
         ),
         Question(
             category="DROIT/INFO",
-            prompt="Le principe RGPD de 'minimisation' signifie :",
+            prompt="Une adresse IP ou un identifiant publicitaire sont-ils des Données Personnelles (DCP) ?",
             answers={
-                "A": "Collecter le maximum de données au cas où",
-                "B": "Collecter uniquement les données nécessaires à la finalité",
-                "C": "Partager les données avec tous les partenaires",
-                "D": "Anonymiser systématiquement toutes les données",
+                "A": "Non, jamais",
+                "B": "Oui, car ils permettent d'identifier indirectement",
+                "C": "Seulement pour les personnes célèbres",
+                "D": "Non, ce sont des données machines",
             },
             correct="B",
-            explanation="Minimisation : adéquates, pertinentes, limitées à la finalité.",
         ),
+
+        # --- NIVEAU DIFFICILE ---
         Question(
             category="DROIT/INFO",
-            prompt="Dans le droit d'auteur appliqué au logiciel, qu'est-ce qui N'est PAS protégé ?",
+            prompt="J'ai le droit de créer un logiciel qui a exactement les mêmes fonctionnalités que Excel si :",
             answers={
-                "A": "Le code source",
-                "B": "Le code objet",
-                "C": "Les idées / fonctionnalités / algorithmes",
-                "D": "Le matériel préparatoire",
-            },
-            correct="C",
-            explanation="Le droit d'auteur protège l'expression (ex. code), pas les idées/algorithmes en tant que tels.",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="La protection des bases de données peut concerner :",
-            answers={
-                "A": "Uniquement la structure (jamais le contenu)",
-                "B": "Uniquement le contenu (jamais la structure)",
-                "C": "La structure (droit d'auteur si originalité) et le contenu (sui generis si investissement)",
-                "D": "Aucun des deux",
-            },
-            correct="C",
-            explanation="Double régime possible : structure (originalité) / contenu (investissement).",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="RGPD : les données personnelles concernent principalement :",
-            answers={
-                "A": "Les personnes morales",
-                "B": "Les personnes physiques",
-                "C": "Uniquement les mineurs",
-                "D": "Uniquement les employés",
-            },
-            correct="B",
-            explanation="Le RGPD protège les personnes physiques via leurs données personnelles.",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="Quel est l'ordre de grandeur maximal des sanctions RGPD cité dans le cours ?",
-            answers={"A": "2 M€ / 1% CA", "B": "5 M€ / 2% CA", "C": "20 M€ / 4% CA", "D": "200 M€ / 10% CA"},
-            correct="C",
-            explanation="Sanctions : jusqu'à 20 M€ ou 4% du CA annuel mondial.",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="APP (Agence pour la Protection des Programmes) est associée à :",
-            answers={
-                "A": "La protection des logiciels (preuves, dépôts, etc.)",
-                "B": "L'hébergement cloud",
-                "C": "La certification RGPD",
-                "D": "Le chiffrement des bases",
+                "A": "Je ne copie pas le code source",
+                "B": "Je le distribue gratuitement",
+                "C": "Je change le nom du logiciel",
+                "D": "C'est strictement interdit",
             },
             correct="A",
-            explanation="L'APP intervient notamment pour la protection des logiciels (dépôt probatoire, etc.).",
         ),
         Question(
             category="DROIT/INFO",
-            prompt="Le principe RGPD de 'finalité' impose :",
+            prompt="Quelle est la durée de protection du droit Sui Generis (producteur BDD) ?",
             answers={
-                "A": "Une collecte sans objectif défini",
-                "B": "Une collecte pour des objectifs déterminés, explicites et légitimes",
-                "C": "Une collecte uniquement hors UE",
-                "D": "Une collecte uniquement anonymisée",
-            },
-            correct="B",
-            explanation="Finalité : objectifs déterminés/explicites/légitimes.",
-        ),
-        Question(
-            category="DROIT/INFO",
-            prompt="Évolution des risques (2011 vs 2025) : l'augmentation est surtout liée à :",
-            answers={
-                "A": "La disparition totale des bases de données",
-                "B": "La baisse des attaques web",
-                "C": "La généralisation des applis web/API et de la donnée, augmentant la surface d'attaque (ex. injection SQL)",
-                "D": "L'arrêt des langages SQL",
+                "A": "70 ans après la mort de l'auteur",
+                "B": "10 ans renouvelables",
+                "C": "15 ans à compter de l'achèvement",
+                "D": "Illimitée tant que la base existe",
             },
             correct="C",
-            explanation="Plus de services web + API + données = plus de surface d'attaque et d'impact.",
         ),
         Question(
             category="DROIT/INFO",
-            prompt="Dans le tableau, 'Données personnelles' → RGPD → protège surtout :",
+            prompt="Stocker des mots de passe 'en clair' (non chiffrés) est une violation de l'obligation de :",
             answers={
-                "A": "Vie privée, limitée à la finalité",
-                "B": "Originalité, 70 ans",
-                "C": "Investissement, 15 ans",
-                "D": "Secret industriel, illimité",
+                "A": "Finalité",
+                "B": "Transparence",
+                "C": "Sécurité",
+                "D": "Portabilité",
             },
-            correct="A",
-            explanation="Le tableau indique : RGPD, vie privée, limitée à la finalité.",
+            correct="C",
         ),
+
+        # --- LA QUESTION QUI TUE (FINALE) ---
+        Question(
+            category="DROIT/INFO",
+            prompt="Quelle est la sanction administrative MAXIMALE possible par la CNIL ?",
+            answers={
+                "A": "300 000 €",
+                "B": "3 Millions €",
+                "C": "10 Millions € ou 2% du CA",
+                "D": "20 Millions € ou 4% du CA",
+            },
+            correct="D",
+        )
     ]
 
     return q

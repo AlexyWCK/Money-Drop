@@ -16,16 +16,14 @@ class IO:
 
 
 class MoneyDropEngine:
-    def __init__(self, questions: List[Question], rng: Optional[random.Random] = None):
+    def __init__(self, questions: List[Question]):
         self._questions = list(questions)
-        self._rng = rng or random.Random()
 
     def run_game(self, player_name: str, io: IO, config: GameConfig) -> GameResult:
         player = Player(name=player_name, chips=config.starting_chips)
         details: List[str] = []
 
         questions = self._questions[:]
-        self._rng.shuffle(questions)
         questions = questions[: config.question_count]
 
         io.write("\n=== Money Drop ===\n")
@@ -60,7 +58,7 @@ class MoneyDropEngine:
                 bet_total = sum(bets.values())
                 unbet = player.chips - bet_total
 
-            kept = bets[question.correct] + unbet
+            kept = bets[question.correct]
             lost = bet_total - bets[question.correct]
             player.chips = kept
             if bets[question.correct] > 0:

@@ -61,19 +61,45 @@ function updateVisuals(state){
   for(const k of ANSWER_KEYS){
     const amount = b[k] || 0;
     const amountEl = $('amount'+k);
-    if(amountEl) amountEl.textContent = `${amount.toLocaleString('fr-FR')} €`;
+    if(amountEl) amountEl.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : '';
 
     const zoneLabel = $('zoneLabel'+k);
     if(zoneLabel) zoneLabel.textContent = amount > 0 ? `${amount.toLocaleString('fr-FR')} €` : 'Glissez ici';
 
     const visual = $('chipsVisual'+k);
     if(visual){
-      const stacks = Math.min(Math.floor(amount / 1000), 10);
       visual.innerHTML = '';
-      for(let i=0;i<stacks;i++){
-        const stack = document.createElement('div');
-        stack.className = 'chip-stack';
-        visual.appendChild(stack);
+      let val = amount || 0;
+      const playerChips = state?.player?.chips || 0;
+      const isAllIn = val > 0 && val >= playerChips;
+
+      const addToken = (src, h='40px') => {
+        const img = document.createElement('img');
+        img.src = '/static/' + src;
+        img.className = 'token-img';
+        img.style.height = h;
+        img.style.marginRight = '-12px';
+        img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
+        visual.appendChild(img);
+      };
+
+      if(isAllIn){
+        addToken('mallette.png','72px');
+      } else {
+        const bills = Math.floor(val / 1000);
+        val %= 1000;
+        const coins = Math.floor(val / 100);
+
+        const MAX_DISPLAY = 8;
+        let count = 0;
+        for(let i=0; i<bills && count<MAX_DISPLAY; i++, count++) addToken('billet.jpg','42px');
+        for(let i=0; i<coins && count<MAX_DISPLAY; i++, count++) addToken('coin.png','34px');
+        if(bills + coins > MAX_DISPLAY){
+          const more = document.createElement('div');
+          more.textContent = '+' + (bills + coins - MAX_DISPLAY);
+          more.className = 'token-more';
+          visual.appendChild(more);
+        }
       }
     }
   }
@@ -81,13 +107,30 @@ function updateVisuals(state){
   // Remaining stacks visualization
   const moneyStacks = $('moneyStacks');
   if(moneyStacks){
-    const stacks = Math.min(Math.ceil(remaining / 1000), 10);
-    moneyStacks.innerHTML = '';
-    for(let i=0;i<stacks;i++){
-      const stack = document.createElement('div');
-      stack.className = 'chip-stack';
-      moneyStacks.appendChild(stack);
-    }
+      moneyStacks.innerHTML = '';
+      let val = remaining;
+      const bills = Math.floor(val / 1000);
+      val %= 1000;
+      const coins = Math.floor(val / 100);
+
+      const addToken = (src, h) => {
+        const img = document.createElement('img');
+        img.src = '/static/' + src;
+        img.style.height = h || '30px';
+        img.style.marginRight = '-10px';
+        moneyStacks.appendChild(img);
+      };
+
+      const maxItems = 20; 
+      let count = 0;
+      for(let i=0; i<bills && count<maxItems; i++, count++) addToken('billet.jpg','40px');
+      for(let i=0; i<coins && count<maxItems; i++, count++) addToken('coin.png','32px');
+      if(bills+coins > maxItems){
+        const more = document.createElement('div');
+        more.textContent = '+' + (bills+coins - maxItems);
+        more.className = 'token-more';
+        moneyStacks.appendChild(more);
+      }
   }
 
   const remainingBar = $('remainingBar');
@@ -126,6 +169,9 @@ function setTimerValue(seconds){
 let timerInterval = null;
 let timeRemaining = TOTAL_TIME;
 let timerQuestionIndex = null;
+
+// Cinématique: empêche de relancer l'anim sur chaque refresh
+let cinematicQuestionIndex = null;
 
 function stopTimer(){
   if(timerInterval){
@@ -242,7 +288,22 @@ function renderState(state){
   renderLeaderboard(state);
 
   if(state?.question && !state?.finished && !state?.eliminated){
-    startTimerForQuestion(state.progress.index);
+    const idx = Number(state?.progress?.index ?? 0);
+
+    // Joue la cinématique uniquement quand la question change
+    if(window.MD_CINEMATIC && typeof window.MD_CINEMATIC.playOnce === 'function' && cinematicQuestionIndex !== idx){
+      cinematicQuestionIndex = idx;
+      stopTimer();
+      setTimerValue(TOTAL_TIME);
+      const played = window.MD_CINEMATIC.playOnce({
+        index: idx,
+        prompt: state.question.prompt,
+        onAfterReveal: () => startTimerForQuestion(idx)
+      });
+      if(played) return;
+    }
+
+    startTimerForQuestion(idx);
   } else {
     stopTimer();
     setTimerValue(0);
@@ -282,6 +343,16 @@ async function submit(){
   stopTimer();
 
   const res = payload.resolution;
+  // Cinématique de résolution type Money Drop
+  if(window.MD_RESOLUTION && typeof window.MD_RESOLUTION.play === 'function'){
+    try{
+      await window.MD_RESOLUTION.play({ correct: res.correct, bets: b });
+    }catch(e){
+      // no-op: fallback to normal flow
+    }
+  }
+
+  // Applique les états finaux
   document.querySelector(`.md-answer[data-key="${res.correct}"]`)?.classList.add('good');
   document.querySelector(`.md-zone[data-key="${res.correct}"]`)?.classList.add('good');
   for(const k of ANSWER_KEYS){
@@ -295,7 +366,7 @@ async function submit(){
   setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
 
   // Refresh state for next question
-  setTimeout(()=>{ refresh().catch(()=>{}); }, 500);
+  setTimeout(()=>{ refresh().catch(()=>{}); }, 650);
 }
 
 async function autoSubmit(){
@@ -314,11 +385,19 @@ async function autoSubmit(){
   }
 
   const res = payload.resolution;
+  if(window.MD_RESOLUTION && typeof window.MD_RESOLUTION.play === 'function'){
+    try{
+      await window.MD_RESOLUTION.play({ correct: res.correct, bets: b });
+    }catch(e){
+      // no-op
+    }
+  }
+
   document.querySelector(`.md-answer[data-key="${res.correct}"]`)?.classList.add('good');
   document.querySelector(`.md-zone[data-key="${res.correct}"]`)?.classList.add('good');
 
   setMessage(`Bonne réponse: ${res.correct}) ${res.correct_label} | Perdus: ${res.lost} | Conservés: ${res.kept}${res.explanation ? ' — ' + res.explanation : ''}`);
-  setTimeout(()=>{ refresh().catch(()=>{}); }, 500);
+  setTimeout(()=>{ refresh().catch(()=>{}); }, 650);
 }
 
 function clampBetsToChips(state){
@@ -340,13 +419,20 @@ function clampBetsToChips(state){
   for(const k of ANSWER_KEYS) setBet(k, b[k]||0);
 }
 
-async function onAdjust(key, dir){
+async function onAdjust(key, action){
   const state = await getState();
   const chips = state?.player?.chips ?? 0;
   const b = getBets();
   const current = b[key] || 0;
 
-  let next = current + (dir === 'plus' ? BET_STEP : -BET_STEP);
+  let next = current;
+  if(action === 'reset') next = 0;
+  else if(action === 'add-100') next += 100;
+  else if(action === 'add-1000') next += 1000;
+  else if(action === 'add-5000') next += 5000;
+  else if(action === 'plus') next += 100;
+  else if(action === 'minus') next -= 100;
+
   next = Math.max(0, next);
   b[key] = next;
 
