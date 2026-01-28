@@ -62,12 +62,12 @@ def create_app() -> Flask:
     class RTPlayer:
         sid: str
         name: str
-        score: int = 1000  # jetons (chips)
-        lingots: int = 1   # lingot indépendant (bonus)
+        score: int = 10000  # capital à miser (jetons)
+        lingots: int = 1   # lingot réserve (5000€, non misable)
         choice: Optional[str] = None
         is_correct: Optional[bool] = None
+        eliminated: bool = False  # Défaite totale (capital=0 ET lingot=0)
         bets: Dict[str, int] = field(default_factory=lambda: {"A": 0, "B": 0, "C": 0, "D": 0})
-        bet_lingot: Optional[str] = None # Sur quelle zone le lingot est misé
         socket_id: Optional[str] = None  # SocketIO session ID
 
     @dataclass
@@ -75,7 +75,7 @@ def create_app() -> Flask:
         lobby_id: str
         host_sid: str
         host_name: str
-        max_players: int = 8
+        max_players: int = 50
         time_limit: int = 30
         question_total: int = 10
         created_at: float = field(default_factory=time.time)
@@ -135,10 +135,10 @@ def create_app() -> Flask:
                 for p in self.players.values():
                     p.score = 10000  # Reset jetons
                     p.lingots = 1    # Reset lingot
+                    p.eliminated = False  # Reset statut éliminé
                     p.choice = None
                     p.is_correct = None
                     p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
-                    p.bet_lingot = None
                 # Le host déclenche explicitement le lancement de question
                 self.phase = "waiting"
 
@@ -153,7 +153,9 @@ def create_app() -> Flask:
                 for p in self.players.values():
                     p.choice = None
                     p.is_correct = None
-                    # On ne touche pas à p.bets ici : il reste tel quel
+                    # Ne réinitialiser les mises que si le joueur n'est pas éliminé
+                    if not p.eliminated:
+                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
                 self.phase = "question"
                 # Le chrono démarre après la cinématique (plateau visible)
                 self.question_started_at = time.time() + self.CINEMATIC_DELAY_SECONDS
@@ -232,24 +234,32 @@ def create_app() -> Flask:
 
                 # Calculer les gains/pertes pour chaque joueur
                 for p in self.players.values():
-                    # Si le joueur n'a pas misé (p.bets vide ou tout à 0), il perd tout
+                    # Ignorer les joueurs déjà éliminés
+                    if p.eliminated:
+                        p.is_correct = None
+                        continue
+                    
+                    # Si le joueur n'a pas misé (p.bets vide ou tout à 0), il perd tout son capital
                     if not p.bets or sum(p.bets.values()) == 0:
                         p.score = 0
                         p.is_correct = False
-                        continue
-                    correct_bet = p.bets.get(self.correct, 0)
-                    # Le joueur garde UNIQUEMENT sa mise correcte (les jetons non misés sont perdus)
-                    p.score = correct_bet
-                    p.is_correct = correct_bet > 0
+                    else:
+                        correct_bet = p.bets.get(self.correct, 0)
+                        # Le joueur garde UNIQUEMENT sa mise correcte (les jetons non misés sont perdus)
+                        p.score = correct_bet
+                        p.is_correct = correct_bet > 0
                     
-                    # Gestion du lingot bonus
-                    # Si le lingot a été misé
-                    if p.bet_lingot:
-                        # Si misé sur la mauvaise réponse, il est perdu
-                        if p.bet_lingot != self.correct:
-                            p.lingots -= 1
-                        # Si misé sur la bonne réponse, il est conservé (pas de changement)
-                    # Si le lingot n'a pas été misé, il est conservé (sécurité)
+                    # Si le capital tombe à 0, utiliser le lingot comme réserve
+                    if p.score <= 0 and p.lingots > 0:
+                        # Le lingot est converti en 5000€ de capital
+                        p.score = 5000  # LINGOT_VALUE
+                        p.lingots = 0
+                    
+                    # Si capital = 0 ET lingot = 0 → défaite totale
+                    if p.score <= 0 and p.lingots <= 0:
+                        p.eliminated = True
+                        p.score = 0
+                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
 
                 self.phase = "results"
 
@@ -267,8 +277,9 @@ def create_app() -> Flask:
                 for p in self.players.values():
                     p.choice = None
                     p.is_correct = None
-                    p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
-                    p.bet_lingot = None
+                    # Ne réinitialiser les mises que si le joueur n'est pas éliminé
+                    if not p.eliminated:
+                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
                 self.phase = "waiting"
 
         def snapshot(self) -> Dict[str, Any]:
@@ -283,10 +294,11 @@ def create_app() -> Flask:
                     "correct": self.correct if self.phase == "results" else None,
                     "players": [
                         {
+                            "sid": p.sid,
                             "name": p.name,
                             "score": p.score,
                             "lingots": p.lingots,
-                            "bet_lingot": p.bet_lingot,
+                            "eliminated": p.eliminated,
                             "choice": p.choice,
                             "is_correct": p.is_correct if self.phase == "results" else None,
                             "socket_id": p.socket_id,
@@ -306,7 +318,7 @@ def create_app() -> Flask:
                 lobby_id=lobby_id,
                 host_sid=host_sid,
                 host_name=host_name,
-                max_players=max(2, min(int(max_players), 8)),
+                max_players=max(2, min(int(max_players), 50)),
                 time_limit=max(5, min(int(time_limit), 120)),
                 question_total=10,
             )
@@ -529,7 +541,6 @@ def create_app() -> Flask:
         data = payload or {}
         lobby_id = (data.get("lobby_id") or "").strip()
         bets = data.get("bets", {})
-        bet_lingot = data.get("bet_lingot") # "A", "B", "C", "D" ou None
         sid = request.sid  # Utiliser socket_sid
         lobby = rt_lobbies.get(lobby_id)
         if not sid or not lobby:
@@ -544,10 +555,10 @@ def create_app() -> Flask:
                 break
         
         if target_sid:
-            lobby.place_bets(target_sid, bets, bet_lingot)
+            lobby.place_bets(target_sid, bets)
         else:
             # Fallback (devrait pas arriver si logique de connection OK)
-            lobby.place_bets(sid, bets, bet_lingot)
+            lobby.place_bets(sid, bets)
 
         # Ne pas valider automatiquement pour laisser le temps aux joueurs de modifier leurs mises
         # La validation se fera à la fin du timer (_ticker) ou par forcage hote

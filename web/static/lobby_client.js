@@ -101,24 +101,19 @@
       myChips = me.score || 0;
       myLingots = (me.lingots !== undefined) ? me.lingots : 1;
       
-      // Restaurer le placement du lingot si présent dans l'état (reconnexion)
-      if (state.phase === 'question' && me.bet_lingot) {
-         currentLingotBet = me.bet_lingot;
-      }
-      
       document.getElementById('playerName').textContent = myPlayerName;
       document.getElementById('chips').textContent = myChips;
       document.getElementById('lingotCount').textContent = myLingots;
       
       const lDisp = document.getElementById('lingotDisplay');
       // Afficher le status lingot
-      if(lDisp) lDisp.style.display = (myLingots > 0 || currentLingotBet) ? '' : 'none';
+      if(lDisp) lDisp.style.display = (myLingots > 0) ? '' : 'none';
 
-      // Si le joueur vient de perdre (passage à 0 jetons ET 0 lingots)
-      const isEliminated = (myChips <= 0 && myLingots <= 0);
-      const wasEliminated = (previousChips <= 0 && previousLingots <= 0);
+      // Vérifier si le joueur vient d'être éliminé (utiliser le flag du serveur)
+      const isNowEliminated = me.eliminated || false;
+      const wasAlreadyEliminated = previousChips <= 0 && previousLingots <= 0;
 
-      if(gameStarted && isEliminated && !wasEliminated && !hasShownGameOver){
+      if(gameStarted && isNowEliminated && !wasAlreadyEliminated && !hasShownGameOver){
         hasShownGameOver = true;
         showGameOver();
         return;
