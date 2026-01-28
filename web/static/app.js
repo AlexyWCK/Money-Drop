@@ -69,26 +69,38 @@ function updateVisuals(state){
     const visual = $('chipsVisual'+k);
     if(visual){
       visual.innerHTML = '';
-      let val = amount;
-      const ingots = Math.floor(val / 5000);
-      val %= 5000;
-      const bills = Math.floor(val / 1000);
-      val %= 1000;
-      const coins = Math.floor(val / 100);
+      let val = amount || 0;
+      const playerChips = state?.player?.chips || 0;
+      const isAllIn = val > 0 && val >= playerChips;
 
-      const addToken = (src) => {
+      const addToken = (src, h='40px') => {
         const img = document.createElement('img');
         img.src = '/static/' + src;
         img.className = 'token-img';
-        img.style.height = '40px';
-        img.style.marginRight = '-15px';
+        img.style.height = h;
+        img.style.marginRight = '-12px';
         img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.5))';
         visual.appendChild(img);
       };
 
-      for(let i=0; i<ingots; i++) addToken('mallette.png');
-      for(let i=0; i<bills; i++) addToken('billet.jpg');
-      for(let i=0; i<coins; i++) addToken('coin.png');
+      if(isAllIn){
+        addToken('mallette.png','72px');
+      } else {
+        const bills = Math.floor(val / 1000);
+        val %= 1000;
+        const coins = Math.floor(val / 100);
+
+        const MAX_DISPLAY = 8;
+        let count = 0;
+        for(let i=0; i<bills && count<MAX_DISPLAY; i++, count++) addToken('billet.jpg','42px');
+        for(let i=0; i<coins && count<MAX_DISPLAY; i++, count++) addToken('coin.png','34px');
+        if(bills + coins > MAX_DISPLAY){
+          const more = document.createElement('div');
+          more.textContent = '+' + (bills + coins - MAX_DISPLAY);
+          more.className = 'token-more';
+          visual.appendChild(more);
+        }
+      }
     }
   }
 

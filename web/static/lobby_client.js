@@ -6,6 +6,7 @@
   let currentState = null;
   let myPlayerName = '';
   let myChips = 10000;
+  let isSpectator = false;
   const MAX_TOKEN_DISPLAY = 8;
 
   let currentBets = { A: 0, B: 0, C: 0, D: 0 };
@@ -26,6 +27,14 @@
       role: 'player',
       player_name: playerName
     });
+  });
+
+  // Server forces spectator due to elimination
+  socket.on('force_spectator', (p) => {
+    isSpectator = true;
+    setMsg(p?.message || 'Mode spectateur activé', 'info');
+    disableBetting();
+    showGameBoard();
   });
 
   socket.on('error_msg', (p) => setMsg(p?.error || 'Erreur', 'error'));
@@ -159,7 +168,8 @@
     playerCount.textContent = state.players?.length || 0;
     playersList.innerHTML = '';
     
-    (state.players || []).forEach((p, idx) => {
+    const hostSid = state.host_sid || null;
+    (state.players || []).forEach((p) => {
       const item = document.createElement('div');
       item.className = 'md-lobby-player-item';
       
@@ -174,8 +184,8 @@
       item.appendChild(avatar);
       item.appendChild(name);
       
-      // Badge hôte pour le premier joueur
-      if(idx === 0){
+      // Badge hôte uniquement si c'est explicitement l'hôte
+      if(hostSid && p.sid === hostSid){
         const badge = document.createElement('div');
         badge.className = 'md-lobby-player-badge';
         badge.textContent = '👑 Hôte';
@@ -389,40 +399,46 @@
         visual.style.paddingBottom = '12px';
 
         let val = currentBets[k] || 0;
-        const bills = Math.floor(val / 1000);
-        val %= 1000;
-        const coins = Math.floor(val / 100);
+        // Determine if this is an ALL-IN (player placed all remaining chips on this zone)
+        const otherBets = totalBet - currentBets[k];
+        const remainingBefore = Math.max(0, myChips - otherBets);
+        const isAllIn = currentBets[k] > 0 && currentBets[k] >= remainingBefore;
 
-        const items = [];
-        for(let i=0; i<bills; i++) items.push({src:'billet.jpg', cls:'token-bill'});
-        for(let i=0; i<coins; i++) items.push({src:'coin.png', cls:'token-coin'});
-
-        const MAX_DISPLAY = MAX_TOKEN_DISPLAY;
-        const displayCount = Math.min(items.length, MAX_DISPLAY);
-        for(let i=0;i<displayCount;i++){
-            const item = items[i];
+        if(isAllIn){
+            // Show single mallette to indicate all-in
             const img = document.createElement('img');
-            img.src = '/static/' + item.src;
-            img.className = item.cls || 'token-img';
-            img.style.height = (item.cls==='token-bill' ? '42px' : '34px');
-            img.style.marginRight = (i>0 ? '-10px' : '0');
-            img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))';
+            img.src = '/static/mallette.png';
+            img.className = 'token-mallette token-img';
+            img.style.height = '72px';
+            img.style.filter = 'drop-shadow(0 6px 12px rgba(0,0,0,0.45))';
             visual.appendChild(img);
-        }
-        if(items.length > MAX_DISPLAY){
-            const more = document.createElement('div');
-            more.className = 'token-more';
-            more.textContent = '+' + (items.length - MAX_DISPLAY);
-            more.style.position = 'absolute';
-            more.style.bottom = '6px';
-            more.style.right = '6px';
-            more.style.background = 'rgba(0,0,0,0.6)';
-            more.style.color = '#fff';
-            more.style.padding = '4px 6px';
-            more.style.borderRadius = '8px';
-            more.style.fontWeight = '700';
-            more.style.fontSize = '12px';
-            visual.appendChild(more);
+        } else {
+            const bills = Math.floor(val / 1000);
+            val %= 1000;
+            const coins = Math.floor(val / 100);
+
+            const items = [];
+            for(let i=0; i<bills; i++) items.push({src:'billet.jpg', cls:'token-bill'});
+            for(let i=0; i<coins; i++) items.push({src:'coin.png', cls:'token-coin'});
+
+            const MAX_DISPLAY = MAX_TOKEN_DISPLAY;
+            const displayCount = Math.min(items.length, MAX_DISPLAY);
+            for(let i=0;i<displayCount;i++){
+                const item = items[i];
+                const img = document.createElement('img');
+                img.src = '/static/' + item.src;
+                img.className = item.cls || 'token-img';
+                img.style.height = (item.cls==='token-bill' ? '42px' : '34px');
+                img.style.marginRight = (i>0 ? '-10px' : '0');
+                img.style.filter = 'drop-shadow(0 2px 3px rgba(0,0,0,0.35))';
+                visual.appendChild(img);
+            }
+            if(items.length > MAX_DISPLAY){
+                const more = document.createElement('div');
+                more.className = 'token-more';
+                more.textContent = '+' + (items.length - MAX_DISPLAY);
+                visual.appendChild(more);
+            }
         }
       }
     });
@@ -521,6 +537,7 @@
   });
 
   function enableBetting(){
+    if(isSpectator) return; // prevent enabling for spectators
     document.querySelectorAll('.md-bet-input').forEach(btn => btn.disabled = false);
   }
 
@@ -553,7 +570,8 @@
   const btnSpectator = document.getElementById('btnSpectator');
   if(btnSpectator){
     btnSpectator.addEventListener('click', () => {
-      // Revenir au plateau de jeu en mode spectateur
+      // Revenir au plateau de jeu en mode spectateur (bloquer toute interaction)
+      isSpectator = true;
       showGameBoard();
       if(currentState){
         render(currentState);

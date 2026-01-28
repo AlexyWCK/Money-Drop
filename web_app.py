@@ -68,6 +68,7 @@ def create_app() -> Flask:
         eliminated: bool = False  # Défaite totale (capital=0)
         bets: Dict[str, int] = field(default_factory=lambda: {"A": 0, "B": 0, "C": 0, "D": 0})
         socket_id: Optional[str] = None  # SocketIO session ID
+        ip: Optional[str] = None  # last known IP address
 
     @dataclass
     class RealtimeLobby:
@@ -88,20 +89,24 @@ def create_app() -> Flask:
         questions: list = field(default_factory=list)
         correct: Optional[str] = None
         players: Dict[str, RTPlayer] = field(default_factory=dict)
+        # SIDs of players who were eliminated and must not rejoin as active players
+        banned_sids: set = field(default_factory=set)
 
         # Durée de la cinématique côté client avant affichage du plateau (voir web/static/cinematic.js)
         CINEMATIC_DELAY_SECONDS = 4.5  # 4s animation + 0.5s transition
 
-        def add_player(self, sid: str, name: str, socket_sid: str = None) -> None:
+        def add_player(self, sid: str, name: str, socket_sid: str = None, ip: Optional[str] = None) -> None:
             with self.lock:
                 if sid in self.players:
                     self.players[sid].name = name
                     if socket_sid:
                         self.players[sid].socket_id = socket_sid
+                    if ip:
+                        self.players[sid].ip = ip
                     return
                 if len(self.players) >= self.max_players:
                     raise ValueError("Lobby plein")
-                self.players[sid] = RTPlayer(sid=sid, name=name, score=10000, socket_id=socket_sid)
+                self.players[sid] = RTPlayer(sid=sid, name=name, score=10000, socket_id=socket_sid, ip=ip)
 
         def time_remaining(self) -> Optional[int]:
             if self.phase == "question" and self.question_started_at is not None:
@@ -244,7 +249,15 @@ def create_app() -> Flask:
                     if p.score <= 0:
                         p.eliminated = True
                         p.score = 0
-                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0} 
+                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
+                                # Prevent the eliminated player from re-joining as an active player (ban sid and ip if available)
+                        try:
+                            if p.sid:
+                                self.banned_sids.add(p.sid)
+                            if getattr(p, 'ip', None):
+                                self.banned_sids.add(p.ip)
+                        except Exception:
+                            pass 
 
                 self.phase = "results"
 
@@ -277,6 +290,8 @@ def create_app() -> Flask:
                     "question_total": len(self.questions) if self.questions else self.question_total,
                     "question": self.current_question() if self.phase in ("question", "paused", "results") else None,
                     "correct": self.correct if self.phase == "results" else None,
+                    "host_sid": self.host_sid,
+                    "host_name": self.host_name,
                     "players": [
                         {
                             "sid": p.sid,
@@ -480,11 +495,24 @@ def create_app() -> Flask:
             emit("error_msg", {"error": "Lobby invalide"})
             return
         
-        # Pour les joueurs : créer un SID unique basé sur le socket SocketIO
-        # Pour l'host : utiliser le SID de session Flask
+        # Pour les joueurs : utiliser le SID de session si possible pour éviter les ré-entrées frauduleuses
+        # (fallback sur socket id si pas de session). Pour l'host : utiliser le SID de session Flask
         if role == "player":
-            # Utiliser le socket_sid comme identifiant unique pour chaque client/onglet
-            sid = socket_sid
+            session_sid = session.get("sid")
+            sid = session_sid or socket_sid
+
+            # Si ce SID est banni (éliminé), forcer le spectateur
+            # Check if the player is banned by sid or IP
+            banned_ip = request.remote_addr
+            if sid in lobby.banned_sids or (banned_ip and banned_ip in lobby.banned_sids):
+                # Joindre la room mais ne pas ajouter comme joueur actif
+                join_room(lobby_id)
+                emit("force_spectator", {"message": "Vous êtes éliminé — mode spectateur"})
+                # Envoyer l'état courant
+                emit("state", lobby.snapshot())
+                # Ne pas ajouter le joueur
+                return
+
             try:
                 lobby.add_player(sid, player_name, socket_sid)
             except ValueError as e:
