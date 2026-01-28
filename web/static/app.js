@@ -97,25 +97,28 @@ function updateVisuals(state){
   if(moneyStacks){
       moneyStacks.innerHTML = '';
       let val = remaining;
-      const ingots = Math.floor(val / 5000);
-      val %= 5000;
       const bills = Math.floor(val / 1000);
       val %= 1000;
       const coins = Math.floor(val / 100);
 
-      const addToken = (src) => {
+      const addToken = (src, h) => {
         const img = document.createElement('img');
         img.src = '/static/' + src;
-        img.style.height = '30px';
+        img.style.height = h || '30px';
         img.style.marginRight = '-10px';
         moneyStacks.appendChild(img);
       };
 
-      const maxItems = 40; 
+      const maxItems = 20; 
       let count = 0;
-      for(let i=0; i<ingots && count<maxItems; i++, count++) addToken('lingot.png');
-      for(let i=0; i<bills && count<maxItems; i++, count++) addToken('billet.jpg');
-      for(let i=0; i<coins && count<maxItems; i++, count++) addToken('coin.png');
+      for(let i=0; i<bills && count<maxItems; i++, count++) addToken('billet.jpg','40px');
+      for(let i=0; i<coins && count<maxItems; i++, count++) addToken('coin.png','32px');
+      if(bills+coins > maxItems){
+        const more = document.createElement('div');
+        more.textContent = '+' + (bills+coins - maxItems);
+        more.className = 'token-more';
+        moneyStacks.appendChild(more);
+      }
   }
 
   const remainingBar = $('remainingBar');

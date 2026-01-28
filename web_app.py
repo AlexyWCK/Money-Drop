@@ -63,10 +63,9 @@ def create_app() -> Flask:
         sid: str
         name: str
         score: int = 10000  # capital à miser (jetons)
-        lingots: int = 1   # lingot réserve (5000€, non misable)
         choice: Optional[str] = None
         is_correct: Optional[bool] = None
-        eliminated: bool = False  # Défaite totale (capital=0 ET lingot=0)
+        eliminated: bool = False  # Défaite totale (capital=0)
         bets: Dict[str, int] = field(default_factory=lambda: {"A": 0, "B": 0, "C": 0, "D": 0})
         socket_id: Optional[str] = None  # SocketIO session ID
 
@@ -134,7 +133,6 @@ def create_app() -> Flask:
                 self.paused_remaining = None
                 for p in self.players.values():
                     p.score = 10000  # Reset jetons
-                    p.lingots = 1    # Reset lingot
                     p.eliminated = False  # Reset statut éliminé
                     p.choice = None
                     p.is_correct = None
@@ -188,8 +186,8 @@ def create_app() -> Flask:
                     return
                 self.players[sid].choice = c
 
-        def place_bets(self, sid: str, bets: Dict[str, int], bet_lingot: Optional[str] = None) -> None:
-            """Place les mises d'un joueur, y compris le lingot bonus"""
+        def place_bets(self, sid: str, bets: Dict[str, int]) -> None:
+            """Place les mises d'un joueur"""
             with self.lock:
                 if self.phase != "question":
                     return
@@ -201,14 +199,7 @@ def create_app() -> Flask:
                 if total_bet > p.score:
                     return  # Mise invalide
                 
-                # Valider la mise lingot
-                if bet_lingot and bet_lingot not in ["A", "B", "C", "D"]:
-                    bet_lingot = None # Invalide
-                if bet_lingot and p.lingots < 1:
-                    bet_lingot = None # Pas de lingot dispo
-                
-                p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]}
-                p.bet_lingot = bet_lingot
+                p.bets = {k: bets.get(k, 0) for k in ["A", "B", "C", "D"]} 
 
 
         def all_players_bet(self) -> bool:
@@ -248,18 +239,12 @@ def create_app() -> Flask:
                         # Le joueur garde UNIQUEMENT sa mise correcte (les jetons non misés sont perdus)
                         p.score = correct_bet
                         p.is_correct = correct_bet > 0
-                    
-                    # Si le capital tombe à 0, utiliser le lingot comme réserve
-                    if p.score <= 0 and p.lingots > 0:
-                        # Le lingot est converti en 5000€ de capital
-                        p.score = 5000  # LINGOT_VALUE
-                        p.lingots = 0
-                    
-                    # Si capital = 0 ET lingot = 0 → défaite totale
-                    if p.score <= 0 and p.lingots <= 0:
+
+                    # Si capital = 0 → défaite totale
+                    if p.score <= 0:
                         p.eliminated = True
                         p.score = 0
-                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0}
+                        p.bets = {"A": 0, "B": 0, "C": 0, "D": 0} 
 
                 self.phase = "results"
 
@@ -297,7 +282,6 @@ def create_app() -> Flask:
                             "sid": p.sid,
                             "name": p.name,
                             "score": p.score,
-                            "lingots": p.lingots,
                             "eliminated": p.eliminated,
                             "choice": p.choice,
                             "is_correct": p.is_correct if self.phase == "results" else None,

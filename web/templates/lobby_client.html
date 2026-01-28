@@ -32,10 +32,7 @@
           <span class="md-pill-label">Jetons:</span>
           <span id="chips" class="md-pill-value md-gold">10000</span>
         </div>
-        <div class="md-pill" id="lingotDisplay" style="display:none;">
-          <span class="md-pill-label">Lingot:</span>
-          <span id="lingotCount" class="md-pill-value md-gold">1</span>
-        </div>
+
         <div class="md-pill">
           <span class="md-pill-label">Lobby:</span>
           <span class="md-pill-value">{{ lobby_id }}</span>
@@ -143,9 +140,6 @@
             <div class="md-zone" data-key="A">
               <div class="md-zone-controls">
                 <input class="md-bet-input" type="number" id="inputBetA" data-key="A" min="0" step="100" placeholder="Mise" />
-                <button class="md-btn-lingot" id="btnLingotA" data-key="A" type="button" title="Miser le lingot">
-                   <img src="{{ url_for('static', filename='lingot.png') }}" width="30" alt="Lingot">
-                </button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualA" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelA">Glissez ici</div>
@@ -155,9 +149,6 @@
             <div class="md-zone" data-key="B">
               <div class="md-zone-controls">
                 <input class="md-bet-input" type="number" id="inputBetB" data-key="B" min="0" step="100" placeholder="Mise" />
-                <button class="md-btn-lingot" id="btnLingotB" data-key="B" type="button" title="Miser le lingot">
-                   <img src="{{ url_for('static', filename='lingot.png') }}" width="30" alt="Lingot">
-                </button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualB" aria-hidden="true"></div>
               <input id="betB" class="md-hidden" type="number" min="0" step="100" value="0" />
@@ -166,9 +157,6 @@
             <div class="md-zone" data-key="C">
               <div class="md-zone-controls">
                 <input class="md-bet-input" type="number" id="inputBetC" data-key="C" min="0" step="100" placeholder="Mise" />
-                <button class="md-btn-lingot" id="btnLingotC" data-key="C" type="button" title="Miser le lingot">
-                   <img src="{{ url_for('static', filename='lingot.png') }}" width="30" alt="Lingot">
-                </button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualC" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelC">Glissez ici</div>
@@ -178,9 +166,6 @@
             <div class="md-zone" data-key="D">
               <div class="md-zone-controls">
                 <input class="md-bet-input" type="number" id="inputBetD" data-key="D" min="0" step="100" placeholder="Mise" />
-                <button class="md-btn-lingot" id="btnLingotD" data-key="D" type="button" title="Miser le lingot">
-                   <img src="{{ url_for('static', filename='lingot.png') }}" width="30" alt="Lingot">
-                </button>
               </div>
               <div class="md-zone-stacks" id="chipsVisualD" aria-hidden="true"></div>
               <div class="md-zone-label" id="zoneLabelD">Glissez ici</div>
